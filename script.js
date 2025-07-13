@@ -44,7 +44,7 @@ function initCharts() {
     type: "gauge",
     data: {
       datasets: [{
-        value: 25,
+        value: 0,
         data: [50],
         backgroundColor: ["#d32f2f"],
         borderWidth: 0
@@ -53,7 +53,7 @@ function initCharts() {
     options: {
       needle: { radiusPercentage: 2, widthPercentage: 3.2, lengthPercentage: 80 },
       valueLabel: { display: false },
-      minValue: 30,
+      minValue: 0,
       maxValue: 50
     }
   });
@@ -81,7 +81,7 @@ function initCharts() {
 function showFeedback(message, type = 'success') {
   const feedback = document.getElementById('feedback');
   feedback.textContent = message;
-  feedback.className = `alert alert-${type} d-block`;
+  feedback.className = `alert alert-${type} d-block fade show`;
   setTimeout(() => feedback.className = 'alert d-none', 3000);
 }
 
@@ -100,15 +100,14 @@ document.getElementById("login-form").addEventListener("submit", (e) => {
     document.getElementById("login-container").classList.add("d-none");
     document.getElementById("dashboard").classList.remove("d-none");
     if (user.role === "admin") {
-      console.log("Admin user, showing tabs");
-      document.getElementById("admin-tabs").classList.remove("d-none");
-      document.getElementById("logs-tab").classList.remove("d-none");
-      // Initialize tooltips
-      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+      console.log("Admin user, showing navbar");
+      document.getElementById("admin-nav").classList.remove("d-none");
+      document.getElementById("logs-nav").classList.remove("d-none");
+      document.querySelector(".nav-link[data-group='1']").classList.add("active");
     } else {
       currentGroup = user.group;
       document.getElementById("group-id").textContent = currentGroup;
-      document.getElementById("admin-tabs").classList.add("d-none");
+      document.getElementById("admin-nav").classList.add("d-none");
       console.log("Fetching sensor data for group:", currentGroup);
       initCharts();
       fetchSensorData();
@@ -130,11 +129,12 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   if (humidityChart) humidityChart.destroy();
 });
 
-// Tab switching (admin only)
+// Navbar switching (admin only)
 document.querySelectorAll(".nav-link").forEach(tab => {
   tab.addEventListener("click", (e) => {
+    e.preventDefault();
     if (currentUser.role !== "admin") return;
-    console.log("Tab clicked:", e.target.dataset.group);
+    console.log("Nav link clicked:", e.target.dataset.group);
     document.querySelectorAll(".nav-link").forEach(t => t.classList.remove("active"));
     e.target.classList.add("active");
     if (e.target.dataset.group === "logs") {
