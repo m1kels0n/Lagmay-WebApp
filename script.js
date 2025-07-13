@@ -13,6 +13,8 @@ const API_TOKEN = "your_api_token";
 let currentUser = null;
 let currentGroup = 1;
 let isLoading = false;
+let refreshInterval = 5000;
+let pollIntervalId = null;
 
 // Gauge charts
 let soilMoistureChart, temperatureChart, humidityChart;
@@ -23,66 +25,82 @@ function initCharts() {
   const ctxHum = document.getElementById("humidity-gauge").getContext("2d");
 
   soilMoistureChart = new Chart(ctxSoil, {
-    type: "gauge",
+    type: "doughnut",
     data: {
       datasets: [{
-        value: 0,
-        data: [100],
-        backgroundColor: ["#0288d1"],
-        borderWidth: 0
+        data: [0, 100],
+        backgroundColor: ["#0288d1", "#e0e0e0"],
+        borderWidth: 0,
+        circumference: 270,
+        rotation: 225
       }]
     },
     options: {
-      needle: { radiusPercentage: 2, widthPercentage: 3.2, lengthPercentage: 80 },
-      valueLabel: { display: false },
-      minValue: 0,
-      maxValue: 100
+      cutout: "80%",
+      responsive: true,
+      plugins: { legend: { display: false } },
+      animation: { animateRotate: true, animateScale: true }
     }
   });
 
   temperatureChart = new Chart(ctxTemp, {
-    type: "gauge",
+    type: "doughnut",
     data: {
       datasets: [{
-        value: 0,
-        data: [50],
-        backgroundColor: ["#d32f2f"],
-        borderWidth: 0
+        data: [0, 50],
+        backgroundColor: ["#d32f2f", "#e0e0e0"],
+        borderWidth: 0,
+        circumference: 270,
+        rotation: 225
       }]
     },
     options: {
-      needle: { radiusPercentage: 2, widthPercentage: 3.2, lengthPercentage: 80 },
-      valueLabel: { display: false },
-      minValue: 0,
-      maxValue: 50
+      cutout: "80%",
+      responsive: true,
+      plugins: { legend: { display: false } },
+      animation: { animateRotate: true, animateScale: true }
     }
   });
 
   humidityChart = new Chart(ctxHum, {
-    type: "gauge",
+    type: "doughnut",
     data: {
       datasets: [{
-        value: 0,
-        data: [100],
-        backgroundColor: ["#26a69a"],
-        borderWidth: 0
+        data: [0, 100],
+        backgroundColor: ["#26a69a", "#e0e0e0"],
+        borderWidth: 0,
+        circumference: 270,
+        rotation: 225
       }]
     },
     options: {
-      needle: { radiusPercentage: 2, widthPercentage: 3.2, lengthPercentage: 80 },
-      valueLabel: { display: false },
-      minValue: 0,
-      maxValue: 100
+      cutout: "80%",
+      responsive: true,
+      plugins: { legend: { display: false } },
+      animation: { animateRotate: true, animateScale: true }
     }
   });
 }
 
 // Show feedback message
-function showFeedback(message, type = 'success') {
+function showFeedback(message, type = 'success', retryCallback = null) {
   const feedback = document.getElementById('feedback');
-  feedback.textContent = message;
+  feedback.innerHTML = retryCallback 
+    ? `${message} <button class="btn btn-sm btn-outline-light ms-2 retry-btn" aria-label="Retry action">Retry</button>` 
+    : message;
   feedback.className = `alert alert-${type} d-block fade show`;
-  setTimeout(() => feedback.className = 'alert d-none', 3000);
+  gsap.from(feedback, { x: 20, opacity: 0, duration: 0.4 });
+  if (retryCallback) {
+    feedback.querySelector('.retry-btn').addEventListener('click', retryCallback);
+  }
+  setTimeout(() => {
+    feedback.className = 'alert d-none';
+  }, 5000);
+}
+
+// Toggle loading spinner
+function toggleSpinner(show) {
+  document.getElementById('loading-spinner').classList[show ? 'remove' : 'add']('d-none');
 }
 
 // Login
@@ -103,6 +121,7 @@ document.getElementById("login-form").addEventListener("submit", (e) => {
       console.log("Admin user, showing navbar");
       document.getElementById("admin-nav").classList.remove("d-none");
       document.getElementById("logs-nav").classList.remove("d-none");
+      document.getElementById("settings-btn").classList.remove("d-none");
       document.querySelector(".nav-link[data-group='1']").classList.add("active");
     } else {
       currentGroup = user.group;
@@ -112,6 +131,8 @@ document.getElementById("login-form").addEventListener("submit", (e) => {
       initCharts();
       fetchSensorData();
     }
+    // Initialize tooltips
+    bootstrap.Tooltip.getOrCreateInstance(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   } else {
     console.log("Login failed: Invalid credentials");
     alert("Invalid credentials");
@@ -127,6 +148,7 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   if (soilMoistureChart) soilMoistureChart.destroy();
   if (temperatureChart) temperatureChart.destroy();
   if (humidityChart) humidityChart.destroy();
+  clearInterval(pollIntervalId);
 });
 
 // Navbar switching (admin only)
@@ -165,6 +187,7 @@ function fetchSensorData() {
   }
   if (isLoading) return;
   isLoading = true;
+  toggleSpinner(true);
   showFeedback("Loading sensor data...", "info");
   console.log("Fetching sensor data for group:", currentGroup);
   fetch(`${API_BASE}/devices/group${currentGroup}/sensors`, {
@@ -183,25 +206,45 @@ function fetchSensorData() {
     document.getElementById("light-toggle").checked = data.light_state || false;
     document.getElementById("light-status").textContent = data.light_state ? "ON" : "OFF";
     document.getElementById("light-toggle").setAttribute("aria-label", `Toggle light, currently ${data.light_state ? "ON" : "OFF"}`);
-    // Update gauges
-    soilMoistureChart.data.datasets[0].value = Math.min(data.soil_moisture || 0, 100);
-    soilMoistureChart.update();
+    // Update gauges with animation
+    gsap.to(soilMoistureChart.data.datasets[0], {
+      data: [Math.min(data.soil_moisture || 0, 100), 100 - Math.min(data.soil_moisture || 0, 100)],
+      duration: 0.5,
+      onUpdate: () => soilMoistureChart.update(),
+      onComplete: () => document.getElementById("soil-moisture-gauge").classList.add("pulse")
+    });
     document.getElementById("soil-moisture-gauge").setAttribute("aria-label", `Soil Moisture Gauge, ${data.soil_moisture || 0}%`);
-    temperatureChart.data.datasets[0].value = Math.min(data.temperature || 0, 50);
-    temperatureChart.update();
+    gsap.to(temperatureChart.data.datasets[0], {
+      data: [Math.min(data.temperature || 0, 50), 50 - Math.min(data.temperature || 0, 50)],
+      duration: 0.5,
+      onUpdate: () => temperatureChart.update(),
+      onComplete: () => document.getElementById("temperature-gauge").classList.add("pulse")
+    });
     document.getElementById("temperature-gauge").setAttribute("aria-label", `Temperature Gauge, ${data.temperature || 0}°C`);
-    humidityChart.data.datasets[0].value = Math.min(data.humidity || 0, 100);
-    humidityChart.update();
+    gsap.to(humidityChart.data.datasets[0], {
+      data: [Math.min(data.humidity || 0, 100), 100 - Math.min(data.humidity || 0, 100)],
+      duration: 0.5,
+      onUpdate: () => humidityChart.update(),
+      onComplete: () => document.getElementById("humidity-gauge").classList.add("pulse")
+    });
     document.getElementById("humidity-gauge").setAttribute("aria-label", `Humidity Gauge, ${data.humidity || 0}%`);
+    // Remove pulse after animation
+    setTimeout(() => {
+      document.getElementById("soil-moisture-gauge").classList.remove("pulse");
+      document.getElementById("temperature-gauge").classList.remove("pulse");
+      document.getElementById("humidity-gauge").classList.remove("pulse");
+    }, 1000);
     // Update timestamp
     document.getElementById("last-updated").textContent = new Date().toLocaleString();
     showFeedback("Sensor data updated", "success");
     isLoading = false;
+    toggleSpinner(false);
   })
   .catch(err => {
     console.error("Error fetching sensor data:", err);
-    showFeedback("Failed to fetch sensor data", "danger");
+    showFeedback("Failed to fetch sensor data", "danger", fetchSensorData);
     isLoading = false;
+    toggleSpinner(false);
   });
 }
 
@@ -217,6 +260,7 @@ document.getElementById("pump-toggle").addEventListener("change", (e) => {
     return;
   }
   isLoading = true;
+  toggleSpinner(true);
   const newState = e.target.checked;
   console.log("Pump toggle changed, new state:", newState);
   showFeedback(`Turning pump ${newState ? "ON" : "OFF"}...`, "info");
@@ -232,12 +276,14 @@ document.getElementById("pump-toggle").addEventListener("change", (e) => {
     fetchSensorData();
     showFeedback(`Pump turned ${newState ? "ON" : "OFF"}`, "success");
     isLoading = false;
+    toggleSpinner(false);
   })
   .catch(err => {
     console.error("Error controlling pump:", err);
-    showFeedback("Failed to control pump", "danger");
+    showFeedback("Failed to control pump", "danger", () => document.getElementById("pump-toggle").dispatchEvent(new Event("change")));
     e.target.checked = !e.target.checked; // Revert toggle
     isLoading = false;
+    toggleSpinner(false);
   });
 });
 
@@ -253,6 +299,7 @@ document.getElementById("light-toggle").addEventListener("change", (e) => {
     return;
   }
   isLoading = true;
+  toggleSpinner(true);
   const newState = e.target.checked;
   console.log("Light toggle changed, new state:", newState);
   showFeedback(`Turning light ${newState ? "ON" : "OFF"}...`, "info");
@@ -268,25 +315,28 @@ document.getElementById("light-toggle").addEventListener("change", (e) => {
     fetchSensorData();
     showFeedback(`Light turned ${newState ? "ON" : "OFF"}`, "success");
     isLoading = false;
+    toggleSpinner(false);
   })
   .catch(err => {
     console.error("Error controlling light:", err);
-    showFeedback("Failed to control light", "danger");
+    showFeedback("Failed to control light", "danger", () => document.getElementById("light-toggle").dispatchEvent(new Event("change")));
     e.target.checked = !e.target.checked; // Revert toggle
     isLoading = false;
+    toggleSpinner(false);
   });
 });
 
 // Fetch logs (admin only)
-function fetchLogs() {
+function fetchLogs(filter = '') {
   if (currentUser.role !== "admin") {
     console.log("Access denied: Logs are admin-only");
     return;
   }
   if (isLoading) return;
   isLoading = true;
+  toggleSpinner(true);
   showFeedback("Loading logs...", "info");
-  console.log("Fetching logs");
+  console.log("Fetching logs with filter:", filter);
   fetch(`${API_BASE}/devices/logs`, {
     headers: { "Authorization": `Bearer ${API_TOKEN}` }
   })
@@ -295,20 +345,45 @@ function fetchLogs() {
     console.log("Logs received:", logs);
     const logList = document.getElementById("log-list");
     logList.innerHTML = "";
-    logs.forEach(log => {
+    const filteredLogs = logs.filter(log => 
+      log.action.toLowerCase().includes(filter.toLowerCase()) || 
+      log.group.toString().includes(filter)
+    );
+    filteredLogs.forEach(log => {
       const li = document.createElement("li");
       li.textContent = `${log.timestamp}: ${log.user} ${log.action} (Group ${log.group}, Soil: ${log.soil_moisture}%, Temp: ${log.temperature}°C, Hum: ${log.humidity}%)`;
       logList.appendChild(li);
     });
     showFeedback("Logs updated", "success");
     isLoading = false;
+    toggleSpinner(false);
   })
   .catch(err => {
     console.error("Error fetching logs:", err);
-    showFeedback("Failed to fetch logs", "danger");
+    showFeedback("Failed to fetch logs", "danger", () => fetchLogs(filter));
     isLoading = false;
+    toggleSpinner(false);
   });
 }
+
+// Log filter
+document.getElementById("log-filter").addEventListener("input", (e) => {
+  fetchLogs(e.target.value);
+});
+
+// Dark mode toggle
+document.getElementById("dark-mode-toggle").addEventListener("change", (e) => {
+  document.body.classList.toggle("dark-mode", e.target.checked);
+  localStorage.setItem("darkMode", e.target.checked);
+});
+
+// Refresh interval
+document.getElementById("refresh-interval").addEventListener("change", (e) => {
+  refreshInterval = parseInt(e.target.value);
+  clearInterval(pollIntervalId);
+  pollIntervalId = setInterval(fetchSensorData, refreshInterval);
+  console.log("Refresh interval set to:", refreshInterval);
+});
 
 // Manual refresh
 document.getElementById("refresh-btn").addEventListener("click", () => {
@@ -316,5 +391,12 @@ document.getElementById("refresh-btn").addEventListener("click", () => {
   fetchSensorData();
 });
 
-// Poll sensor data every 5 seconds
-setInterval(fetchSensorData, 5000);
+// Initialize settings
+document.addEventListener("DOMContentLoaded", () => {
+  if (localStorage.getItem("darkMode") === "true") {
+    document.getElementById("dark-mode-toggle").checked = true;
+    document.body.classList.add("dark-mode");
+  }
+  document.getElementById("refresh-interval").value = refreshInterval;
+  pollIntervalId = setInterval(fetchSensorData, refreshInterval);
+});
