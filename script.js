@@ -20,6 +20,7 @@ let pollIntervalId = null;
 let soilMoistureChart, temperatureChart, humidityChart;
 
 function initCharts() {
+  console.log("Initializing charts for group:", currentGroup);
   const ctxSoil = document.getElementById("soil-moisture-gauge").getContext("2d");
   const ctxTemp = document.getElementById("temperature-gauge").getContext("2d");
   const ctxHum = document.getElementById("humidity-gauge").getContext("2d");
@@ -38,7 +39,20 @@ function initCharts() {
     options: {
       cutout: "80%",
       responsive: true,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false },
+        afterDraw: (chart) => {
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.font = "1.5rem Poppins";
+          ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`${chart.data.datasets[0].data[0]}%`, chart.width / 2, chart.height / 2);
+          ctx.restore();
+        }
+      },
       animation: { animateRotate: true, animateScale: true }
     }
   });
@@ -57,7 +71,20 @@ function initCharts() {
     options: {
       cutout: "80%",
       responsive: true,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false },
+        afterDraw: (chart) => {
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.font = "1.5rem Poppins";
+          ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`${chart.data.datasets[0].data[0]}°C`, chart.width / 2, chart.height / 2);
+          ctx.restore();
+        }
+      },
       animation: { animateRotate: true, animateScale: true }
     }
   });
@@ -76,7 +103,20 @@ function initCharts() {
     options: {
       cutout: "80%",
       responsive: true,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false },
+        afterDraw: (chart) => {
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.font = "1.5rem Poppins";
+          ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`${chart.data.datasets[0].data[0]}%`, chart.width / 2, chart.height / 2);
+          ctx.restore();
+        }
+      },
       animation: { animateRotate: true, animateScale: true }
     }
   });
@@ -89,13 +129,28 @@ function showFeedback(message, type = 'success', retryCallback = null) {
     ? `${message} <button class="btn btn-sm btn-outline-light ms-2 retry-btn" aria-label="Retry action">Retry</button>` 
     : message;
   feedback.className = `alert alert-${type} d-block fade show`;
-  gsap.from(feedback, { x: 20, opacity: 0, duration: 0.4 });
+  gsap.from(feedback, { scale: 0.8, opacity: 0, duration: 0.5, ease: "bounce.out" });
   if (retryCallback) {
     feedback.querySelector('.retry-btn').addEventListener('click', retryCallback);
   }
   setTimeout(() => {
     feedback.className = 'alert d-none';
   }, 5000);
+}
+
+// Show error toast
+function showErrorToast(message, retryCallback = null) {
+  const toastElement = document.getElementById('error-toast');
+  const toastBody = toastElement.querySelector('.toast-body');
+  toastBody.innerHTML = retryCallback 
+    ? `${message} <button class="btn btn-sm btn-outline-light ms-2 retry-toast-btn" aria-label="Retry action">Retry</button>` 
+    : message;
+  const toast = bootstrap.Toast.getOrCreateInstance(toastElement);
+  if (retryCallback) {
+    const retryBtn = toastBody.querySelector('.retry-toast-btn');
+    retryBtn.addEventListener('click', retryCallback);
+  }
+  toast.show();
 }
 
 // Toggle loading spinner
@@ -127,12 +182,19 @@ document.getElementById("login-form").addEventListener("submit", (e) => {
       currentGroup = user.group;
       document.getElementById("group-id").textContent = currentGroup;
       document.getElementById("admin-nav").classList.add("d-none");
-      console.log("Fetching sensor data for group:", currentGroup);
+      console.log("Initializing dashboard for user, group:", currentGroup);
+      showFeedback("Fetching data...", "info");
       initCharts();
       fetchSensorData();
+      // Ensure polling is set up
+      clearInterval(pollIntervalId);
+      pollIntervalId = setInterval(fetchSensorData, refreshInterval);
+      console.log("Polling interval set for user:", refreshInterval);
     }
     // Initialize tooltips
-    bootstrap.Tooltip.getOrCreateInstance(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+      bootstrap.Tooltip.getOrCreateInstance(el);
+    });
   } else {
     console.log("Login failed: Invalid credentials");
     alert("Invalid credentials");
@@ -159,6 +221,7 @@ document.querySelectorAll(".nav-link").forEach(tab => {
     console.log("Nav link clicked:", e.target.dataset.group);
     document.querySelectorAll(".nav-link").forEach(t => t.classList.remove("active"));
     e.target.classList.add("active");
+    gsap.from(e.target, { scale: 0.9, duration: 0.3, ease: "bounce.out" });
     if (e.target.dataset.group === "logs") {
       document.getElementById("sensor-data").classList.add("d-none");
       document.getElementById("controls").classList.add("d-none");
@@ -175,6 +238,10 @@ document.querySelectorAll(".nav-link").forEach(tab => {
       document.getElementById("logs").classList.add("d-none");
       initCharts();
       fetchSensorData();
+      // Ensure polling is set up for admin
+      clearInterval(pollIntervalId);
+      pollIntervalId = setInterval(fetchSensorData, refreshInterval);
+      console.log("Polling interval set for admin:", refreshInterval);
     }
   });
 });
@@ -185,7 +252,10 @@ function fetchSensorData() {
     console.log("Access denied: User not authorized for group", currentGroup);
     return;
   }
-  if (isLoading) return;
+  if (isLoading) {
+    console.log("Fetch skipped: Already loading");
+    return;
+  }
   isLoading = true;
   toggleSpinner(true);
   showFeedback("Loading sensor data...", "info");
@@ -193,7 +263,10 @@ function fetchSensorData() {
   fetch(`${API_BASE}/devices/group${currentGroup}/sensors`, {
     headers: { "Authorization": `Bearer ${API_TOKEN}` }
   })
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    return res.json();
+  })
   .then(data => {
     console.log("Sensor data received:", data);
     // Update numerical values
@@ -243,6 +316,7 @@ function fetchSensorData() {
   .catch(err => {
     console.error("Error fetching sensor data:", err);
     showFeedback("Failed to fetch sensor data", "danger", fetchSensorData);
+    showErrorToast("Unable to connect to Arduino Cloud. Please check your network or API token.", fetchSensorData);
     isLoading = false;
     toggleSpinner(false);
   });
@@ -256,6 +330,7 @@ document.getElementById("pump-toggle").addEventListener("change", (e) => {
     return;
   }
   if (isLoading) {
+    console.log("Toggle skipped: Already loading");
     e.target.checked = !e.target.checked; // Revert toggle
     return;
   }
@@ -264,6 +339,7 @@ document.getElementById("pump-toggle").addEventListener("change", (e) => {
   const newState = e.target.checked;
   console.log("Pump toggle changed, new state:", newState);
   showFeedback(`Turning pump ${newState ? "ON" : "OFF"}...`, "info");
+  gsap.to(e.target.nextElementSibling, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
   fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
     method: "POST",
     headers: { 
@@ -281,6 +357,7 @@ document.getElementById("pump-toggle").addEventListener("change", (e) => {
   .catch(err => {
     console.error("Error controlling pump:", err);
     showFeedback("Failed to control pump", "danger", () => document.getElementById("pump-toggle").dispatchEvent(new Event("change")));
+    showErrorToast("Failed to control pump. Please try again.", () => document.getElementById("pump-toggle").dispatchEvent(new Event("change")));
     e.target.checked = !e.target.checked; // Revert toggle
     isLoading = false;
     toggleSpinner(false);
@@ -295,6 +372,7 @@ document.getElementById("light-toggle").addEventListener("change", (e) => {
     return;
   }
   if (isLoading) {
+    console.log("Toggle skipped: Already loading");
     e.target.checked = !e.target.checked; // Revert toggle
     return;
   }
@@ -303,6 +381,7 @@ document.getElementById("light-toggle").addEventListener("change", (e) => {
   const newState = e.target.checked;
   console.log("Light toggle changed, new state:", newState);
   showFeedback(`Turning light ${newState ? "ON" : "OFF"}...`, "info");
+  gsap.to(e.target.nextElementSibling, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
   fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
     method: "POST",
     headers: { 
@@ -320,6 +399,7 @@ document.getElementById("light-toggle").addEventListener("change", (e) => {
   .catch(err => {
     console.error("Error controlling light:", err);
     showFeedback("Failed to control light", "danger", () => document.getElementById("light-toggle").dispatchEvent(new Event("change")));
+    showErrorToast("Failed to control light. Please try again.", () => document.getElementById("light-toggle").dispatchEvent(new Event("change")));
     e.target.checked = !e.target.checked; // Revert toggle
     isLoading = false;
     toggleSpinner(false);
@@ -332,7 +412,10 @@ function fetchLogs(filter = '') {
     console.log("Access denied: Logs are admin-only");
     return;
   }
-  if (isLoading) return;
+  if (isLoading) {
+    console.log("Fetch logs skipped: Already loading");
+    return;
+  }
   isLoading = true;
   toggleSpinner(true);
   showFeedback("Loading logs...", "info");
@@ -340,7 +423,10 @@ function fetchLogs(filter = '') {
   fetch(`${API_BASE}/devices/logs`, {
     headers: { "Authorization": `Bearer ${API_TOKEN}` }
   })
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    return res.json();
+  })
   .then(logs => {
     console.log("Logs received:", logs);
     const logList = document.getElementById("log-list");
@@ -361,6 +447,7 @@ function fetchLogs(filter = '') {
   .catch(err => {
     console.error("Error fetching logs:", err);
     showFeedback("Failed to fetch logs", "danger", () => fetchLogs(filter));
+    showErrorToast("Failed to fetch logs. Please try again.", () => fetchLogs(filter));
     isLoading = false;
     toggleSpinner(false);
   });
@@ -375,14 +462,19 @@ document.getElementById("log-filter").addEventListener("input", (e) => {
 document.getElementById("dark-mode-toggle").addEventListener("change", (e) => {
   document.body.classList.toggle("dark-mode", e.target.checked);
   localStorage.setItem("darkMode", e.target.checked);
+  // Update chart labels
+  [soilMoistureChart, temperatureChart, humidityChart].forEach(chart => {
+    if (chart) chart.update();
+  });
 });
 
-// Refresh interval
-document.getElementById("refresh-interval").addEventListener("change", (e) => {
-  refreshInterval = parseInt(e.target.value);
+// Save settings
+document.getElementById("save-settings").addEventListener("click", () => {
+  refreshInterval = parseInt(document.getElementById("refresh-interval").value);
   clearInterval(pollIntervalId);
   pollIntervalId = setInterval(fetchSensorData, refreshInterval);
-  console.log("Refresh interval set to:", refreshInterval);
+  console.log("Settings saved, refresh interval:", refreshInterval);
+  showFeedback("Settings saved", "success");
 });
 
 // Manual refresh
@@ -398,5 +490,4 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("dark-mode");
   }
   document.getElementById("refresh-interval").value = refreshInterval;
-  pollIntervalId = setInterval(fetchSensorData, refreshInterval);
 });

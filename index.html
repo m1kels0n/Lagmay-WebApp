@@ -10,11 +10,22 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Toast Container -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="error-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto">Error</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body"></div>
+    </div>
+  </div>
+
   <!-- Login Container -->
   <div class="container" id="login-container">
     <div class="row justify-content-center mt-5">
       <div class="col-md-6 col-sm-10">
-        <div class="card shadow-lg border-0" data-tilt data-tilt-max="10">
+        <div class="card shadow-lg border-0" data-tilt data-tilt-max="12">
           <div class="card-body p-4">
             <h2 class="card-title text-center mb-4"><i class="fas fa-leaf me-2"></i> Plant Watering System</h2>
             <form id="login-form" aria-label="Login form">
@@ -84,6 +95,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="save-settings" data-bs-dismiss="modal">Save</button>
           </div>
         </div>
       </div>
@@ -96,7 +108,7 @@
     </div>
 
     <!-- Feedback Alert -->
-    <div id="feedback" class="alert d-none fade" role="alert"></div>
+    <div id="feedback" class="alert d-none fade" role="alert" aria-live="polite"></div>
 
     <!-- Loading Spinner -->
     <div id="loading-spinner" class="d-none text-center my-4">
@@ -109,31 +121,31 @@
     <div id="sensor-data" class="my-4">
       <div class="row g-4">
         <div class="col-lg-4 col-md-6">
-          <div class="card shadow-sm border-0 gauge-card" data-tilt data-tilt-max="10">
+          <div class="card shadow-sm border-0 gauge-card" data-tilt data-tilt-max="15">
             <div class="card-body text-center">
               <i class="fas fa-tint fa-2x text-primary mb-3"></i>
               <h5 class="card-title">Soil Moisture</h5>
-              <p class="card-text fw-bold"><span id="soil-moisture">0</span>%</p>
+              <p class="card-text fw-bold"><span id="soil-moisture" aria-live="polite">0</span>%</p>
               <canvas id="soil-moisture-gauge" role="img" aria-label="Soil Moisture Gauge, 0%"></canvas>
             </div>
           </div>
         </div>
         <div class="col-lg-4 col-md-6">
-          <div class="card shadow-sm border-0 gauge-card" data-tilt data-tilt-max="10">
+          <div class="card shadow-sm border-0 gauge-card" data-tilt data-tilt-max="15">
             <div class="card-body text-center">
               <i class="fas fa-thermometer-half fa-2x text-danger mb-3"></i>
               <h5 class="card-title">Temperature</h5>
-              <p class="card-text fw-bold"><span id="temperature">0</span>°C</p>
+              <p class="card-text fw-bold"><span id="temperature" aria-live="polite">0</span>°C</p>
               <canvas id="temperature-gauge" role="img" aria-label="Temperature Gauge, 0°C"></canvas>
             </div>
           </div>
         </div>
         <div class="col-lg-4 col-md-6">
-          <div class="card shadow-sm border-0 gauge-card" data-tilt data-tilt-max="10">
+          <div class="card shadow-sm border-0 gauge-card" data-tilt data-tilt-max="15">
             <div class="card-body text-center">
               <i class="fas fa-water fa-2x text-info mb-3"></i>
               <h5 class="card-title">Humidity</h5>
-              <p class="card-text fw-bold"><span id="humidity">0</span>%</p>
+              <p class="card-text fw-bold"><span id="humidity" aria-live="polite">0</span>%</p>
               <canvas id="humidity-gauge" role="img" aria-label="Humidity Gauge, 0%"></canvas>
             </div>
           </div>
@@ -149,24 +161,24 @@
       <h4 class="text-center mb-3 text-shadow">Controls</h4>
       <div class="row g-4 justify-content-center">
         <div class="col-md-4 col-sm-6">
-          <div class="card shadow-sm border-0 control-card" data-tilt data-tilt-max="10">
+          <div class="card shadow-sm border-0 control-card" data-tilt data-tilt-max="15">
             <div class="card-body text-center">
               <label class="switch" data-bs-toggle="tooltip" title="Toggle water pump">
                 <input type="checkbox" id="pump-toggle" aria-label="Toggle water pump">
                 <span class="slider"><i class="fas fa-tint"></i></span>
               </label>
-              <p class="mt-2 mb-0">Pump: <span id="pump-status">OFF</span></p>
+              <p class="mt-2 mb-0">Pump: <span id="pump-status" aria-live="polite">OFF</span></p>
             </div>
           </div>
         </div>
         <div class="col-md-4 col-sm-6">
-          <div class="card shadow-sm border-0 control-card" data-tilt data-tilt-max="10">
+          <div class="card shadow-sm border-0 control-card" data-tilt data-tilt-max="15">
             <div class="card-body text-center">
               <label class="switch" data-bs-toggle="tooltip" title="Toggle light">
                 <input type="checkbox" id="light-toggle" aria-label="Toggle light">
                 <span class="slider"><i class="fas fa-lightbulb"></i></span>
               </label>
-              <p class="mt-2 mb-0">Light: <span id="light-status">OFF</span></p>
+              <p class="mt-2 mb-0">Light: <span id="light-status" aria-live="polite">OFF</span></p>
             </div>
           </div>
         </div>
@@ -188,7 +200,7 @@
 
     <!-- Footer -->
     <footer class="text-center py-3 bg-success text-white">
-      <p class="mb-0">Plant Watering System &copy; 2025 | Powered by Arduino Cloud</p>
+      <p class="mb-0">Plant Watering System © 2025 | Powered by Arduino Cloud</p>
     </footer>
   </div>
 
