@@ -56,10 +56,10 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav ms-auto">
-            <li class="nav-item"><a class="nav-link" href="#" data-group="1" aria-label="View Group 1">Group 1</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" data-group="2" aria-label="View Group 2">Group 2</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" data-group="3" aria-label="View Group 3">Group 3</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" data-group="4" aria-label="View Group 4">Group 4</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" data-group="1" aria-label="View Group 1">Group 1 (<span id="plant-name-1">Cactus</span>)</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" data-group="2" aria-label="View Group 2">Group 2 (<span id="plant-name-2">Fern</span>)</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" data-group="3" aria-label="View Group 3">Group 3 (<span id="plant-name-3">Orchid</span>)</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" data-group="4" aria-label="View Group 4">Group 4 (<span id="plant-name-4">Bamboo</span>)</a></li>
             <li class="nav-item d-none" id="logs-nav"><a class="nav-link" href="#" data-group="logs" aria-label="View system logs">Logs</a></li>
             <li class="nav-item">
               <button id="settings-btn" class="btn btn-outline-light ms-2" aria-label="Open settings" data-bs-toggle="modal" data-bs-target="#settings-modal"><i class="fas fa-cog"></i></button>
@@ -92,6 +92,25 @@
                 <option value="10000">10 seconds</option>
               </select>
             </div>
+            <div class="mt-3" id="plant-name-settings">
+              <h6>Plant Names</h6>
+              <div class="mb-3">
+                <label for="plant-name-1-input" class="form-label">Group 1 Plant</label>
+                <input type="text" class="form-control" id="plant-name-1-input" placeholder="Enter plant name" aria-label="Group 1 plant name">
+              </div>
+              <div class="mb-3">
+                <label for="plant-name-2-input" class="form-label">Group 2 Plant</label>
+                <input type="text" class="form-control" id="plant-name-2-input" placeholder="Enter plant name" aria-label="Group 2 plant name">
+              </div>
+              <div class="mb-3">
+                <label for="plant-name-3-input" class="form-label">Group 3 Plant</label>
+                <input type="text" class="form-control" id="plant-name-3-input" placeholder="Enter plant name" aria-label="Group 3 plant name">
+              </div>
+              <div class="mb-3">
+                <label for="plant-name-4-input" class="form-label">Group 4 Plant</label>
+                <input type="text" class="form-control" id="plant-name-4-input" placeholder="Enter plant name" aria-label="Group 4 plant name">
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -103,7 +122,7 @@
 
     <!-- Hero Section -->
     <div class="hero-section text-center my-4">
-      <h1 class="display-5 fw-bold text-success text-shadow">Group <span id="group-id">1</span> Dashboard</h1>
+      <h1 class="display-5 fw-bold text-success text-shadow"><span id="plant-name">Cactus</span> Dashboard</h1>
       <p class="lead text-muted">Monitor and control your plant watering system</p>
     </div>
 
@@ -204,6 +223,9 @@
     </footer>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vanilla-tilt@1.7.2/dist/vanilla-tilt.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>

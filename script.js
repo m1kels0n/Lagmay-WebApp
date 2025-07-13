@@ -1,11 +1,15 @@
-// User credentials (not secure; for demo only)
-const users = [
-  { username: "admin", password: "adminpass", role: "admin" },
-  { username: "user1", password: "password1", role: "user", group: 1 },
-  { username: "user2", password: "password2", role: "user", group: 2 },
-  { username: "user3", password: "password3", role: "user", group: 3 },
-  { username: "user4", password: "password4", role: "user", group: 4 }
-];
+// Firebase configuration (replace with your Firebase project's config)
+const firebaseConfig = {
+  apiKey: "your-api-key",
+  authDomain: "plant-watering-system-123.firebaseapp.com",
+  databaseURL: "https://plant-watering-system-123-default-rtdb.firebaseio.com",
+  projectId: "plant-watering-system-123",
+  storageBucket: "plant-watering-system-123.appspot.com",
+  messagingSenderId: "your-sender-id",
+  appId: "your-app-id"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 // API settings (replace with actual Arduino Cloud API details)
 const API_BASE = "https://api2.arduino.cc/iot/v2";
@@ -15,9 +19,52 @@ let currentGroup = 1;
 let isLoading = false;
 let refreshInterval = 5000;
 let pollIntervalId = null;
+let plantNames = { "1": "", "2": "", "3": "", "4": "" };
+let isAdmin = false;
 
 // Gauge charts
 let soilMoistureChart, temperatureChart, humidityChart;
+
+// Load plant names from Firebase Realtime Database with real-time listener
+function loadPlantNames() {
+  console.log("Loading plant names...");
+  db.ref("plantNames").on("value", snapshot => {
+    plantNames = snapshot.val() || { "1": "", "2": "", "3": "", "4": "" };
+    console.log("Loaded from Firebase:", plantNames);
+    updatePlantNameUI();
+  }, err => {
+    console.error("Error loading plant names:", err);
+    plantNames = { "1": "", "2": "", "3": "", "4": "" };
+    updatePlantNameUI();
+    showFeedback("Failed to load plant names", "danger");
+    showErrorToast("Unable to load plant names. Please try again.");
+  });
+}
+
+// Save plant names to Firebase Realtime Database
+function savePlantNames() {
+  console.log("Saving plant names:", plantNames);
+  return db.ref("plantNames").set(plantNames)
+    .then(() => {
+      showFeedback("Plant names saved", "success");
+    })
+    .catch(err => {
+      console.error("Error saving plant names:", err);
+      showFeedback("Failed to save plant names", "danger");
+      showErrorToast("Unable to save plant names. Please try again.");
+    });
+}
+
+// Update plant name UI
+function updatePlantNameUI() {
+  document.getElementById("plant-name").textContent = plantNames[currentGroup] || `Group ${currentGroup}`;
+  if (isAdmin) {
+    for (let i = 1; i <= 4; i++) {
+      document.getElementById(`plant-name-${i}`).textContent = plantNames[i] || `Group ${i}`;
+      document.getElementById(`plant-name-${i}-input`).value = plantNames[i] || "";
+    }
+  }
+}
 
 function initCharts() {
   console.log("Initializing charts for group:", currentGroup);
@@ -161,71 +208,79 @@ function toggleSpinner(show) {
   document.getElementById('loading-spinner').classList[show ? 'remove' : 'add']('d-none');
 }
 
-// Login
+// Login with Firebase Authentication
 document.getElementById("login-form").addEventListener("submit", (e) => {
   e.preventDefault();
   console.log("Login form submitted");
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
-  console.log("Username:", username, "Password:", password);
-  const user = users.find(u => u.username === username && u.password === password);
-  console.log("User found:", user);
-  if (user) {
-    console.log("User authenticated, showing dashboard");
-    currentUser = user;
-    document.getElementById("login-container").classList.add("d-none");
-    document.getElementById("dashboard").classList.remove("d-none");
-    if (user.role === "admin") {
-      console.log("Admin user, showing navbar");
-      document.getElementById("admin-nav").classList.remove("d-none");
-      document.getElementById("logs-nav").classList.remove("d-none");
-      document.getElementById("settings-btn").classList.remove("d-none");
-      document.querySelector(".nav-link[data-group='1']").classList.add("active");
-      currentGroup = 1;
-      initCharts();
-      fetchSensorData();
-      clearInterval(pollIntervalId);
-      pollIntervalId = setInterval(fetchSensorData, refreshInterval);
-      console.log("Polling interval set for admin:", refreshInterval);
-    } else {
-      currentGroup = user.group;
-      document.getElementById("group-id").textContent = currentGroup;
-      document.getElementById("admin-nav").classList.add("d-none");
-      console.log("Initializing dashboard for user, group:", currentGroup);
+  const email = `${username}@plantwatering.com`;
+  console.log("Attempting login:", email);
+  firebase.auth().signInWithEmailAndPassword(email, password)
+    .then(userCredential => {
+      console.log("User authenticated:", userCredential.user.email);
+      currentUser = { email: userCredential.user.email, uid: userCredential.user.uid };
+      isAdmin = email === "admin@plantwatering.com";
+      document.getElementById("login-container").classList.add("d-none");
+      document.getElementById("dashboard").classList.remove("d-none");
+      if (isAdmin) {
+        console.log("Admin user, showing navbar and plant name settings");
+        document.getElementById("admin-nav").classList.remove("d-none");
+        document.getElementById("logs-nav").classList.remove("d-none");
+        document.getElementById("settings-btn").classList.remove("d-none");
+        document.getElementById("plant-name-settings").classList.remove("d-none");
+        document.querySelector(".nav-link[data-group='1']").classList.add("active");
+        currentGroup = 1;
+      } else {
+        currentGroup = parseInt(username.replace("user", ""));
+        document.getElementById("admin-nav").classList.add("d-none");
+        document.getElementById("plant-name-settings").classList.add("d-none");
+        console.log("Initializing dashboard for user, group:", currentGroup);
+      }
       showFeedback("Fetching data...", "info");
       initCharts();
-      fetchSensorData();
-      clearInterval(pollIntervalId);
-      pollIntervalId = setInterval(fetchSensorData, refreshInterval);
-      console.log("Polling interval set for user:", refreshInterval);
-    }
-    // Initialize tooltips
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-      bootstrap.Tooltip.getOrCreateInstance(el);
+      loadPlantNames().then(() => {
+        fetchSensorData();
+        clearInterval(pollIntervalId);
+        pollIntervalId = setInterval(fetchSensorData, refreshInterval);
+        console.log("Polling interval set:", refreshInterval);
+      });
+      // Initialize tooltips
+      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        bootstrap.Tooltip.getOrCreateInstance(el);
+      });
+    })
+    .catch(err => {
+      console.error("Login failed:", err);
+      showFeedback("Invalid credentials", "danger");
+      showErrorToast("Invalid username or password");
     });
-  } else {
-    console.log("Login failed: Invalid credentials");
-    alert("Invalid credentials");
-  }
 });
 
 // Logout
 document.getElementById("logout-btn").addEventListener("click", () => {
   console.log("Logout clicked");
-  currentUser = null;
-  document.getElementById("dashboard").classList.add("d-none");
-  document.getElementById("login-container").classList.remove("d-none");
-  if (soilMoistureChart) soilMoistureChart.destroy();
-  if (temperatureChart) temperatureChart.destroy();
-  if (humidityChart) humidityChart.destroy();
-  clearInterval(pollIntervalId);
+  firebase.auth().signOut().then(() => {
+    currentUser = null;
+    isAdmin = false;
+    document.getElementById("dashboard").classList.add("d-none");
+    document.getElementById("login-container").classList.remove("d-none");
+    if (soilMoistureChart) soilMoistureChart.destroy();
+    if (temperatureChart) temperatureChart.destroy();
+    if (humidityChart) humidityChart.destroy();
+    clearInterval(pollIntervalId);
+    showFeedback("Logged out successfully", "success");
+  }).catch(err => {
+    console.error("Logout failed:", err);
+    showFeedback("Failed to log out", "danger");
+  });
 });
 
 // Navbar switching (admin only)
 document.querySelectorAll(".nav-link").forEach(tab => {
   tab.addEventListener("click", (e) => {
     e.preventDefault();
-    if (currentUser.role !== "admin") return;
+    if (!isAdmin) return;
     console.log("Nav link clicked:", e.target.dataset.group);
     document.querySelectorAll(".nav-link").forEach(t => t.classList.remove("active"));
     e.target.classList.add("active");
@@ -241,7 +296,7 @@ document.querySelectorAll(".nav-link").forEach(tab => {
       fetchLogs();
     } else {
       currentGroup = parseInt(e.target.dataset.group);
-      document.getElementById("group-id").textContent = currentGroup;
+      document.getElementById("plant-name").textContent = plantNames[currentGroup] || `Group ${currentGroup}`;
       document.getElementById("sensor-data").classList.remove("d-none");
       document.getElementById("controls").classList.remove("d-none");
       document.getElementById("logs").classList.add("d-none");
@@ -256,7 +311,7 @@ document.querySelectorAll(".nav-link").forEach(tab => {
 
 // Fetch sensor data
 function fetchSensorData() {
-  if (!currentUser || (currentUser.role !== "admin" && currentUser.group !== currentGroup)) {
+  if (!currentUser || (!isAdmin && currentUser.email !== `user${currentGroup}@plantwatering.com`)) {
     console.log("Access denied: User not authorized for group", currentGroup);
     return;
   }
@@ -332,7 +387,7 @@ function fetchSensorData() {
 
 // Control pump
 document.getElementById("pump-toggle").addEventListener("change", (e) => {
-  if (!currentUser || (currentUser.role !== "admin" && currentUser.group !== currentGroup)) {
+  if (!currentUser || (!isAdmin && currentUser.email !== `user${currentGroup}@plantwatering.com`)) {
     console.log("Access denied: User not authorized for group", currentGroup);
     e.target.checked = !e.target.checked; // Revert toggle
     return;
@@ -374,7 +429,7 @@ document.getElementById("pump-toggle").addEventListener("change", (e) => {
 
 // Control light
 document.getElementById("light-toggle").addEventListener("change", (e) => {
-  if (!currentUser || (currentUser.role !== "admin" && currentUser.group !== currentGroup)) {
+  if (!currentUser || (!isAdmin && currentUser.email !== `user${currentGroup}@plantwatering.com`)) {
     console.log("Access denied: User not authorized for group", currentGroup);
     e.target.checked = !e.target.checked; // Revert toggle
     return;
@@ -416,7 +471,7 @@ document.getElementById("light-toggle").addEventListener("change", (e) => {
 
 // Fetch logs (admin only)
 function fetchLogs(filter = '') {
-  if (currentUser.role !== "admin") {
+  if (!isAdmin) {
     console.log("Access denied: Logs are admin-only");
     return;
   }
@@ -441,11 +496,13 @@ function fetchLogs(filter = '') {
     logList.innerHTML = "";
     const filteredLogs = logs.filter(log => 
       log.action.toLowerCase().includes(filter.toLowerCase()) || 
-      log.group.toString().includes(filter)
+      log.group.toString().includes(filter) ||
+      (plantNames[log.group] && plantNames[log.group].toLowerCase().includes(filter.toLowerCase()))
     );
     filteredLogs.forEach(log => {
       const li = document.createElement("li");
-      li.textContent = `${log.timestamp}: ${log.user} ${log.action} (Group ${log.group}, Soil: ${log.soil_moisture}%, Temp: ${log.temperature}°C, Hum: ${log.humidity}%)`;
+      const plantName = plantNames[log.group] || `Group ${log.group}`;
+      li.textContent = `${log.timestamp}: ${log.user} ${log.action} (${plantName}, Soil: ${log.soil_moisture}%, Temp: ${log.temperature}°C, Hum: ${log.humidity}%)`;
       logList.appendChild(li);
     });
     showFeedback("Logs updated", "success");
@@ -482,6 +539,12 @@ document.getElementById("save-settings").addEventListener("click", () => {
   clearInterval(pollIntervalId);
   pollIntervalId = setInterval(fetchSensorData, refreshInterval);
   console.log("Settings saved, refresh interval:", refreshInterval);
+  if (isAdmin) {
+    for (let i = 1; i <= 4; i++) {
+      plantNames[i] = document.getElementById(`plant-name-${i}-input`).value.trim();
+    }
+    savePlantNames().then(() => updatePlantNameUI());
+  }
   showFeedback("Settings saved", "success");
 });
 
@@ -498,4 +561,5 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("dark-mode");
   }
   document.getElementById("refresh-interval").value = refreshInterval;
+  // Load plant names only after login
 });

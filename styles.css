@@ -13,7 +13,10 @@ body.dark-mode p, body.dark-mode label, body.dark-mode li,
 body.dark-mode .navbar-brand, body.dark-mode .nav-link,
 body.dark-mode .form-control, body.dark-mode .modal-title,
 body.dark-mode .toast-header, body.dark-mode .toast-body,
-body.dark-mode #pump-status, body.dark-mode #light-status {
+body.dark-mode #pump-status, body.dark-mode #light-status,
+body.dark-mode #plant-name, body.dark-mode #plant-name-1,
+body.dark-mode #plant-name-2, body.dark-mode #plant-name-3,
+body.dark-mode #plant-name-4 {
   color: #e0e0e0 !important;
   text-shadow: 0 0 3px rgba(255, 255, 255, 0.3);
 }
