@@ -1,11 +1,9 @@
-// Firebase configuration (replace with your Firebase project's config)
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC-jzkS6N6DwVW_8HlGmDLbgPP-HFZEzfs",
   authDomain: "lagmay-irrigation.firebaseapp.com",
@@ -20,6 +18,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+const db = getDatabase(app);
+const auth = getAuth(app);
 
 // API settings (replace with actual Arduino Cloud API details)
 const API_BASE = "https://api2.arduino.cc/iot/v2";
@@ -38,11 +38,12 @@ let soilMoistureChart, temperatureChart, humidityChart;
 // Load plant names from Firebase Realtime Database with real-time listener
 function loadPlantNames() {
   console.log("Loading plant names...");
-  db.ref("plantNames").on("value", snapshot => {
+  const plantNamesRef = ref(db, "plantNames");
+  onValue(plantNamesRef, (snapshot) => {
     plantNames = snapshot.val() || { "1": "", "2": "", "3": "", "4": "" };
     console.log("Loaded from Firebase:", plantNames);
     updatePlantNameUI();
-  }, err => {
+  }, (err) => {
     console.error("Error loading plant names:", err);
     plantNames = { "1": "", "2": "", "3": "", "4": "" };
     updatePlantNameUI();
@@ -53,8 +54,15 @@ function loadPlantNames() {
 
 // Save plant names to Firebase Realtime Database
 function savePlantNames() {
+  if (!isAdmin) {
+    console.log("Save plant names skipped: Not admin");
+    showFeedback("Access denied: Admin only", "danger");
+    showErrorToast("Only admin can save plant names.");
+    return Promise.reject(new Error("Access denied"));
+  }
   console.log("Saving plant names:", plantNames);
-  return db.ref("plantNames").set(plantNames)
+  const plantNamesRef = ref(db, "plantNames");
+  return set(plantNamesRef, plantNames)
     .then(() => {
       showFeedback("Plant names saved", "success");
     })
@@ -62,6 +70,7 @@ function savePlantNames() {
       console.error("Error saving plant names:", err);
       showFeedback("Failed to save plant names", "danger");
       showErrorToast("Unable to save plant names. Please try again.");
+      throw err;
     });
 }
 
@@ -218,6 +227,53 @@ function toggleSpinner(show) {
   document.getElementById('loading-spinner').classList[show ? 'remove' : 'add']('d-none');
 }
 
+// Handle authentication state
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log("Auth state: User logged in:", user.email);
+    currentUser = { email: user.email, uid: user.uid };
+    isAdmin = user.email === "admin@plantwatering.com";
+    document.getElementById("login-container").classList.add("d-none");
+    document.getElementById("dashboard").classList.remove("d-none");
+    if (isAdmin) {
+      console.log("Admin user, showing navbar and plant name settings");
+      document.getElementById("admin-nav").classList.remove("d-none");
+      document.getElementById("logs-nav").classList.remove("d-none");
+      document.getElementById("settings-btn").classList.remove("d-none");
+      document.getElementById("plant-name-settings").classList.remove("d-none");
+      document.querySelector(".nav-link[data-group='1']").classList.add("active");
+      currentGroup = 1;
+    } else {
+      const username = user.email.split('@')[0];
+      currentGroup = parseInt(username.replace("user", ""));
+      document.getElementById("admin-nav").classList.add("d-none");
+      document.getElementById("plant-name-settings").classList.add("d-none");
+      console.log("Initializing dashboard for user, group:", currentGroup);
+    }
+    showFeedback("Fetching data...", "info");
+    initCharts();
+    loadPlantNames();
+    fetchSensorData();
+    clearInterval(pollIntervalId);
+    pollIntervalId = setInterval(fetchSensorData, refreshInterval);
+    console.log("Polling interval set:", refreshInterval);
+    // Initialize tooltips
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+      bootstrap.Tooltip.getOrCreateInstance(el);
+    });
+  } else {
+    console.log("Auth state: No user logged in");
+    currentUser = null;
+    isAdmin = false;
+    document.getElementById("dashboard").classList.add("d-none");
+    document.getElementById("login-container").classList.remove("d-none");
+    if (soilMoistureChart) soilMoistureChart.destroy();
+    if (temperatureChart) temperatureChart.destroy();
+    if (humidityChart) humidityChart.destroy();
+    clearInterval(pollIntervalId);
+  }
+});
+
 // Login with Firebase Authentication
 document.getElementById("login-form").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -226,39 +282,10 @@ document.getElementById("login-form").addEventListener("submit", (e) => {
   const password = document.getElementById("password").value;
   const email = `${username}@plantwatering.com`;
   console.log("Attempting login:", email);
-  firebase.auth().signInWithEmailAndPassword(email, password)
+  signInWithEmailAndPassword(auth, email, password)
     .then(userCredential => {
       console.log("User authenticated:", userCredential.user.email);
-      currentUser = { email: userCredential.user.email, uid: userCredential.user.uid };
-      isAdmin = email === "admin@plantwatering.com";
-      document.getElementById("login-container").classList.add("d-none");
-      document.getElementById("dashboard").classList.remove("d-none");
-      if (isAdmin) {
-        console.log("Admin user, showing navbar and plant name settings");
-        document.getElementById("admin-nav").classList.remove("d-none");
-        document.getElementById("logs-nav").classList.remove("d-none");
-        document.getElementById("settings-btn").classList.remove("d-none");
-        document.getElementById("plant-name-settings").classList.remove("d-none");
-        document.querySelector(".nav-link[data-group='1']").classList.add("active");
-        currentGroup = 1;
-      } else {
-        currentGroup = parseInt(username.replace("user", ""));
-        document.getElementById("admin-nav").classList.add("d-none");
-        document.getElementById("plant-name-settings").classList.add("d-none");
-        console.log("Initializing dashboard for user, group:", currentGroup);
-      }
-      showFeedback("Fetching data...", "info");
-      initCharts();
-      loadPlantNames().then(() => {
-        fetchSensorData();
-        clearInterval(pollIntervalId);
-        pollIntervalId = setInterval(fetchSensorData, refreshInterval);
-        console.log("Polling interval set:", refreshInterval);
-      });
-      // Initialize tooltips
-      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-        bootstrap.Tooltip.getOrCreateInstance(el);
-      });
+      // Handled by onAuthStateChanged
     })
     .catch(err => {
       console.error("Login failed:", err);
@@ -270,15 +297,7 @@ document.getElementById("login-form").addEventListener("submit", (e) => {
 // Logout
 document.getElementById("logout-btn").addEventListener("click", () => {
   console.log("Logout clicked");
-  firebase.auth().signOut().then(() => {
-    currentUser = null;
-    isAdmin = false;
-    document.getElementById("dashboard").classList.add("d-none");
-    document.getElementById("login-container").classList.remove("d-none");
-    if (soilMoistureChart) soilMoistureChart.destroy();
-    if (temperatureChart) temperatureChart.destroy();
-    if (humidityChart) humidityChart.destroy();
-    clearInterval(pollIntervalId);
+  signOut(auth).then(() => {
     showFeedback("Logged out successfully", "success");
   }).catch(err => {
     console.error("Logout failed:", err);
@@ -571,5 +590,4 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("dark-mode");
   }
   document.getElementById("refresh-interval").value = refreshInterval;
-  // Load plant names only after login
 });

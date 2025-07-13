@@ -4,232 +4,218 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Plant Watering System</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.2/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Toast Container -->
-  <div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div id="error-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" aria-label="Error notification">
+  <div class="container">
+    <div id="error-toast" class="toast position-fixed top-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true">
       <div class="toast-header">
         <strong class="me-auto">Error</strong>
         <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
       <div class="toast-body"></div>
     </div>
-  </div>
 
-  <!-- Login Container -->
-  <div class="container" id="login-container">
-    <div class="row justify-content-center mt-5">
-      <div class="col-md-6 col-sm-10">
-        <div class="card shadow-lg border-0" data-tilt data-tilt-max="12">
-          <div class="card-body p-4">
-            <h2 class="card-title text-center mb-4"><i class="fas fa-leaf me-2"></i> Plant Watering System</h2>
-            <form id="login-form" aria-label="Login form">
-              <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
-                <input type="text" class="form-control" id="username" required aria-required="true" placeholder="Enter username">
-              </div>
-              <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" required aria-required="true" placeholder="Enter password">
-              </div>
-              <button type="submit" class="btn btn-primary w-100" aria-label="Login to the system">Login</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Dashboard Container -->
-  <div class="container d-none" id="dashboard">
-    <!-- Navbar for Admin -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-success shadow-sm sticky-top" id="admin-nav">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="#"><i class="fas fa-leaf me-2"></i> Plant Watering System</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav ms-auto">
-            <li class="nav-item"><a class="nav-link" href="#" data-group="1" aria-label="View Group 1">Group 1 (<span id="plant-name-1">Cactus</span>)</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" data-group="2" aria-label="View Group 2">Group 2 (<span id="plant-name-2">Fern</span>)</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" data-group="3" aria-label="View Group 3">Group 3 (<span id="plant-name-3">Orchid</span>)</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" data-group="4" aria-label="View Group 4">Group 4 (<span id="plant-name-4">Bamboo</span>)</a></li>
-            <li class="nav-item d-none" id="logs-nav"><a class="nav-link" href="#" data-group="logs" aria-label="View system logs">Logs</a></li>
-            <li class="nav-item">
-              <button id="settings-btn" class="btn btn-outline-light ms-2" aria-label="Open settings" data-bs-toggle="modal" data-bs-target="#settings-modal"><i class="fas fa-cog"></i></button>
-            </li>
-            <li class="nav-item">
-              <button id="logout-btn" class="btn btn-outline-light ms-2" aria-label="Logout from the system">Logout</button>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
-
-    <!-- Settings Modal (Admin Only) -->
-    <div class="modal fade" id="settings-modal" tabindex="-1" aria-labelledby="settings-modal-label" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="settings-modal-label">Settings</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="dark-mode-toggle" aria-label="Toggle dark mode">
-              <label class="form-check-label" for="dark-mode-toggle">Dark Mode</label>
-            </div>
-            <div class="mb-3 mt-3">
-              <label for="refresh-interval" class="form-label">Refresh Interval</label>
-              <select class="form-select" id="refresh-interval" aria-label="Select refresh interval">
-                <option value="5000">5 seconds</option>
-                <option value="10000">10 seconds</option>
-              </select>
-            </div>
-            <div class="mt-3" id="plant-name-settings">
-              <h6>Plant Names</h6>
-              <div class="mb-3">
-                <label for="plant-name-1-input" class="form-label">Group 1 Plant</label>
-                <input type="text" class="form-control" id="plant-name-1-input" placeholder="Enter plant name" aria-label="Group 1 plant name">
-              </div>
-              <div class="mb-3">
-                <label for="plant-name-2-input" class="form-label">Group 2 Plant</label>
-                <input type="text" class="form-control" id="plant-name-2-input" placeholder="Enter plant name" aria-label="Group 2 plant name">
-              </div>
-              <div class="mb-3">
-                <label for="plant-name-3-input" class="form-label">Group 3 Plant</label>
-                <input type="text" class="form-control" id="plant-name-3-input" placeholder="Enter plant name" aria-label="Group 3 plant name">
-              </div>
-              <div class="mb-3">
-                <label for="plant-name-4-input" class="form-label">Group 4 Plant</label>
-                <input type="text" class="form-control" id="plant-name-4-input" placeholder="Enter plant name" aria-label="Group 4 plant name">
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary" id="save-settings" data-bs-dismiss="modal">Save</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Hero Section -->
-    <div class="hero-section text-center my-4">
-      <h1 class="display-5 fw-bold text-success text-shadow"><span id="plant-name">Cactus</span> Dashboard</h1>
-      <p class="lead text-muted">Monitor and control your plant watering system</p>
-    </div>
-
-    <!-- Feedback Alert -->
-    <div id="feedback" class="alert d-none fade" role="alert" aria-live="polite"></div>
-
-    <!-- Loading Spinner -->
-    <div id="loading-spinner" class="d-none text-center my-4">
-      <div class="spinner-border text-success" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-    </div>
-
-    <!-- Sensor Data -->
-    <div id="sensor-data" class="my-4">
-      <div class="row g-4">
-        <div class="col-lg-4 col-md-6">
-          <div class="card shadow-sm border-0 gauge-card" data-tilt data-tilt-max="15">
-            <div class="card-body text-center">
-              <i class="fas fa-tint fa-2x text-primary mb-3"></i>
-              <h5 class="card-title">Soil Moisture</h5>
-              <p class="card-text fw-bold"><span id="soil-moisture" aria-live="polite">0</span>%</p>
-              <canvas id="soil-moisture-gauge" role="img" aria-label="Soil Moisture Gauge, 0%"></canvas>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-4 col-md-6">
-          <div class="card shadow-sm border-0 gauge-card" data-tilt data-tilt-max="15">
-            <div class="card-body text-center">
-              <i class="fas fa-thermometer-half fa-2x text-danger mb-3"></i>
-              <h5 class="card-title">Temperature</h5>
-              <p class="card-text fw-bold"><span id="temperature" aria-live="polite">0</span>°C</p>
-              <canvas id="temperature-gauge" role="img" aria-label="Temperature Gauge, 0°C"></canvas>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-4 col-md-6">
-          <div class="card shadow-sm border-0 gauge-card" data-tilt data-tilt-max="15">
-            <div class="card-body text-center">
-              <i class="fas fa-water fa-2x text-info mb-3"></i>
-              <h5 class="card-title">Humidity</h5>
-              <p class="card-text fw-bold"><span id="humidity" aria-live="polite">0</span>%</p>
-              <canvas id="humidity-gauge" role="img" aria-label="Humidity Gauge, 0%"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-      <p class="text-muted text-center mt-3">Last updated: <span id="last-updated">Never</span>
-        <button id="refresh-btn" class="btn btn-outline-success btn-sm ms-2" aria-label="Refresh sensor data">Refresh</button>
-      </p>
-    </div>
-
-    <!-- Controls -->
-    <div id="controls" class="my-4">
-      <h4 class="text-center mb-3 text-shadow">Controls</h4>
-      <div class="row g-4 justify-content-center">
-        <div class="col-md-4 col-sm-6">
-          <div class="card shadow-sm border-0 control-card" data-tilt data-tilt-max="15">
-            <div class="card-body text-center">
-              <label class="switch" data-bs-toggle="tooltip" title="Toggle water pump">
-                <input type="checkbox" id="pump-toggle" aria-label="Toggle water pump">
-                <span class="slider"><i class="fas fa-tint"></i></span>
-              </label>
-              <p class="mt-2 mb-0">Pump: <span id="pump-status" aria-live="polite">OFF</span></p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4 col-sm-6">
-          <div class="card shadow-sm border-0 control-card" data-tilt data-tilt-max="15">
-            <div class="card-body text-center">
-              <label class="switch" data-bs-toggle="tooltip" title="Toggle light">
-                <input type="checkbox" id="light-toggle" aria-label="Toggle light">
-                <span class="slider"><i class="fas fa-lightbulb"></i></span>
-              </label>
-              <p class="mt-2 mb-0">Light: <span id="light-status" aria-live="polite">OFF</span></p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Logs (Admin Only) -->
-    <div id="logs" class="my-4 d-none">
-      <h4 class="text-center mb-3 text-shadow">System Logs</h4>
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
+    <div id="login-container">
+      <div class="card shadow-lg p-4 mx-auto" style="max-width: 400px;">
+        <h1 class="text-center mb-4">Plant Watering System</h1>
+        <form id="login-form">
           <div class="mb-3">
-            <input type="text" class="form-control" id="log-filter" placeholder="Filter logs by group or action" aria-label="Filter logs">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" id="username" placeholder="e.g., admin, user1" required>
           </div>
-          <ul id="log-list" class="list-unstyled" role="log" aria-label="System logs"></ul>
-        </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
       </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="text-center py-3 bg-success text-white">
-      <p class="mb-0">Plant Watering System © 2025 | Powered by Arduino Cloud</p>
+    <div id="dashboard" class="d-none">
+      <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">Plant Watering System</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+              <li id="admin-nav" class="nav-item d-none">
+                <a class="nav-link" href="#" data-group="1">Group 1 (Cactus)</a>
+              </li>
+              <li id="admin-nav" class="nav-item d-none">
+                <a class="nav-link" href="#" data-group="2">Group 2 (Fern)</a>
+              </li>
+              <li id="admin-nav" class="nav-item d-none">
+                <a class="nav-link" href="#" data-group="3">Group 3 (Orchid)</a>
+              </li>
+              <li id="admin-nav" class="nav-item d-none">
+                <a class="nav-link" href="#" data-group="4">Group 4 (Bamboo)</a>
+              </li>
+              <li id="logs-nav" class="nav-item d-none">
+                <a class="nav-link" href="#" data-group="logs">Logs</a>
+              </li>
+              <li class="nav-item">
+                <button id="logout-btn" class="btn btn-outline-success ms-2">Logout</button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="settingsModalLabel">Settings</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3 form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="dark-mode-toggle">
+                <label class="form-check-label" for="dark-mode-toggle">Dark Mode</label>
+              </div>
+              <div class="mb-3">
+                <label for="refresh-interval" class="form-label">Refresh Interval</label>
+                <select class="form-select" id="refresh-interval">
+                  <option value="5000">5 seconds</option>
+                  <option value="10000">10 seconds</option>
+                </select>
+              </div>
+              <div id="plant-name-settings" class="d-none">
+                <h6>Plant Names</h6>
+                <div class="mb-3">
+                  <label for="plant-name-1-input" class="form-label">Group 1 Plant</label>
+                  <input type="text" class="form-control" id="plant-name-1-input" placeholder="Enter plant name">
+                </div>
+                <div class="mb-3">
+                  <label for="plant-name-2-input" class="form-label">Group 2 Plant</label>
+                  <input type="text" class="form-control" id="plant-name-2-input" placeholder="Enter plant name">
+                </div>
+                <div class="mb-3">
+                  <label for="plant-name-3-input" class="form-label">Group 3 Plant</label>
+                  <input type="text" class="form-control" id="plant-name-3-input" placeholder="Enter plant name">
+                </div>
+                <div class="mb-3">
+                  <label for="plant-name-4-input" class="form-label">Group 4 Plant</label>
+                  <input type="text" class="form-control" id="plant-name-4-input" placeholder="Enter plant name">
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="button" class="btn btn-success" id="save-settings">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-section text-center mb-5 shadow-lg p-4">
+        <h1 class="display-5 text-shadow" id="plant-name">Cactus Dashboard</h1>
+        <p class="lead text-muted">Monitor and control your plant watering system</p>
+        <button id="settings-btn" class="btn btn-outline-success d-none" data-bs-toggle="modal" data-bs-target="#settingsModal" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Open settings"><i class="fas fa-cog"></i></button>
+      </div>
+
+      <div id="loading-spinner" class="text-center my-4 d-none">
+        <div class="spinner-border text-success" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
+      <div id="sensor-data">
+        <div class="row mb-5">
+          <div class="col-md-4 mb-4">
+            <div class="card gauge-card shadow-sm">
+              <div class="card-body text-center">
+                <h4 class="card-title text-primary text-shadow">Soil Moisture</h4>
+                <p class="card-text" id="soil-moisture">0%</p>
+                <canvas id="soil-moisture-gauge" aria-label="Soil Moisture Gauge"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-4">
+            <div class="card gauge-card shadow-sm">
+              <div class="card-body text-center">
+                <h4 class="card-title text-danger text-shadow">Temperature</h4>
+                <p class="card-text" id="temperature">0°C</p>
+                <canvas id="temperature-gauge" aria-label="Temperature Gauge"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-4">
+            <div class="card gauge-card shadow-sm">
+              <div class="card-body text-center">
+                <h4 class="card-title text-info text-shadow">Humidity</h4>
+                <p class="card-text" id="humidity">0%</p>
+                <canvas id="humidity-gauge" aria-label="Humidity Gauge"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="text-center mb-4">
+          <p class="text-muted">Last updated: <span id="last-updated">Never</span></p>
+          <button id="refresh-btn" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Refresh data"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+      </div>
+
+      <div id="controls">
+        <h2 class="text-center mb-4 text-shadow">Controls</h2>
+        <div class="row">
+          <div class="col-md-6 mb-4">
+            <div class="card control-card shadow-sm">
+              <div class="card-body d-flex align-items-center">
+                <div class="form-check form-switch me-3">
+                  <input class="form-check-input" type="checkbox" id="pump-toggle" aria-label="Toggle water pump">
+                  <label class="form-check-label slider" for="pump-toggle"><i class="fas fa-tint"></i></label>
+                </div>
+                <p class="mb-0" id="pump-status">Pump: OFF</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 mb-4">
+            <div class="card control-card shadow-sm">
+              <div class="card-body d-flex align-items-center">
+                <div class="form-check form-switch me-3">
+                  <input class="form-check-input" type="checkbox" id="light-toggle" aria-label="Toggle light">
+                  <label class="form-check-label slider" for="light-toggle"><i class="fas fa-lightbulb"></i></label>
+                </div>
+                <p class="mb-0" id="light-status">Light: OFF</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="logs" class="d-none">
+        <h2 class="text-center mb-4 text-shadow">System Logs</h2>
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <input type="text" class="form-control mb-3" id="log-filter" placeholder="Filter logs...">
+            <ul id="log-list" class="list-unstyled"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div id="feedback" class="alert d-none" role="alert"></div>
+    </div>
+
+    <footer class="text-center text-muted mt-5 py-3">
+      <p>Plant Watering System © 2025 | Powered by Arduino Cloud</p>
     </footer>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vanilla-tilt@1.7.2/dist/vanilla-tilt.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
