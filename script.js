@@ -259,18 +259,20 @@ onAuthStateChanged(auth, (user) => {
     document.getElementById("login-container").classList.add("d-none");
     document.getElementById("dashboard").classList.remove("d-none");
     if (isAdmin) {
-      console.log("Admin user, showing navbar and plant name settings");
+      console.log("Admin user, showing navbar and settings");
       document.querySelectorAll(".admin-nav").forEach(el => el.classList.remove("d-none"));
       document.getElementById("logs-nav").classList.remove("d-none");
-      document.getElementById("settings-btn").classList.remove("d-none");
       document.getElementById("plant-name-settings").classList.remove("d-none");
+      document.querySelector(".admin-only").classList.remove("d-none");
       document.querySelector(".nav-link[data-group='1']").classList.add("active");
       currentGroup = 1;
     } else {
       const username = user.email.split('@')[0];
       currentGroup = parseInt(username.replace("user", ""));
       document.querySelectorAll(".admin-nav").forEach(el => el.classList.add("d-none"));
+      document.getElementById("logs-nav").classList.add("d-none");
       document.getElementById("plant-name-settings").classList.add("d-none");
+      document.querySelector(".admin-only").classList.add("d-none");
       console.log("Initializing dashboard for user, group:", currentGroup);
     }
     showFeedback("Fetching data...", "info");
@@ -388,12 +390,18 @@ function fetchSensorData() {
     document.getElementById("soil-moisture").textContent = data.soil_moisture || 0;
     document.getElementById("temperature").textContent = data.temperature || 0;
     document.getElementById("humidity").textContent = data.humidity || 0;
-    document.getElementById("pump-toggle").checked = data.pump_state || false;
-    document.getElementById("pump-status").textContent = data.pump_state ? "ON" : "OFF";
-    document.getElementById("pump-toggle").setAttribute("aria-label", `Toggle water pump, currently ${data.pump_state ? "ON" : "OFF"}`);
-    document.getElementById("light-toggle").checked = data.light_state || false;
-    document.getElementById("light-status").textContent = data.light_state ? "ON" : "OFF";
-    document.getElementById("light-toggle").setAttribute("aria-label", `Toggle light, currently ${data.light_state ? "ON" : "OFF"}`);
+    const pumpBtn = document.getElementById("pump-btn");
+    const lightBtn = document.getElementById("light-btn");
+    const isPumpActive = data.pump_state || false;
+    const isLightActive = data.light_state || false;
+    pumpBtn.classList.toggle("active", isPumpActive);
+    pumpBtn.setAttribute("data-active", isPumpActive);
+    pumpBtn.setAttribute("aria-label", `Toggle water pump, currently ${isPumpActive ? "ON" : "OFF"}`);
+    document.getElementById("pump-status").textContent = isPumpActive ? "Pump: ON" : "Pump: OFF";
+    lightBtn.classList.toggle("active", isLightActive);
+    lightBtn.setAttribute("data-active", isLightActive);
+    lightBtn.setAttribute("aria-label", `Toggle light, currently ${isLightActive ? "ON" : "OFF"}`);
+    document.getElementById("light-status").textContent = isLightActive ? "Light: ON" : "Light: OFF";
     // Update gauges with animation
     gsap.to(soilMoistureChart.data.datasets[0], {
       data: [Math.min(data.soil_moisture || 0, 100), 100 - Math.min(data.soil_moisture || 0, 100)],
@@ -438,23 +446,22 @@ function fetchSensorData() {
 }
 
 // Control pump
-document.getElementById("pump-toggle").addEventListener("change", (e) => {
+document.getElementById("pump-btn").addEventListener("click", () => {
   if (!currentUser || (!isAdmin && currentUser.email !== `user${currentGroup}@plantwatering.com`)) {
     console.log("Access denied: User not authorized for group", currentGroup);
-    e.target.checked = !e.target.checked; // Revert toggle
     return;
   }
   if (isLoading) {
     console.log("Toggle skipped: Already loading");
-    e.target.checked = !e.target.checked; // Revert toggle
     return;
   }
   isLoading = true;
   toggleSpinner(true);
-  const newState = e.target.checked;
-  console.log("Pump toggle changed, new state:", newState);
+  const pumpBtn = document.getElementById("pump-btn");
+  const newState = pumpBtn.getAttribute("data-active") !== "true";
+  console.log("Pump button clicked, new state:", newState);
   showFeedback(`Turning pump ${newState ? "ON" : "OFF"}...`, "info");
-  gsap.to(e.target.nextElementSibling, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
+  gsap.to(pumpBtn, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
   fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
     method: "POST",
     headers: { 
@@ -471,32 +478,30 @@ document.getElementById("pump-toggle").addEventListener("change", (e) => {
   })
   .catch(err => {
     console.error("Error controlling pump:", err);
-    showFeedback("Failed to control pump", "danger", () => document.getElementById("pump-toggle").dispatchEvent(new Event("change")));
-    showErrorToast("Failed to control pump. Please try again.", () => document.getElementById("pump-toggle").dispatchEvent(new Event("change")));
-    e.target.checked = !e.target.checked; // Revert toggle
+    showFeedback("Failed to control pump", "danger", () => document.getElementById("pump-btn").click());
+    showErrorToast("Failed to control pump. Please try again.", () => document.getElementById("pump-btn").click());
     isLoading = false;
     toggleSpinner(false);
   });
 });
 
 // Control light
-document.getElementById("light-toggle").addEventListener("change", (e) => {
+document.getElementById("light-btn").addEventListener("click", () => {
   if (!currentUser || (!isAdmin && currentUser.email !== `user${currentGroup}@plantwatering.com`)) {
     console.log("Access denied: User not authorized for group", currentGroup);
-    e.target.checked = !e.target.checked; // Revert toggle
     return;
   }
   if (isLoading) {
     console.log("Toggle skipped: Already loading");
-    e.target.checked = !e.target.checked; // Revert toggle
     return;
   }
   isLoading = true;
   toggleSpinner(true);
-  const newState = e.target.checked;
-  console.log("Light toggle changed, new state:", newState);
+  const lightBtn = document.getElementById("light-btn");
+  const newState = lightBtn.getAttribute("data-active") !== "true";
+  console.log("Light button clicked, new state:", newState);
   showFeedback(`Turning light ${newState ? "ON" : "OFF"}...`, "info");
-  gsap.to(e.target.nextElementSibling, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
+  gsap.to(lightBtn, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
   fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
     method: "POST",
     headers: { 
@@ -513,9 +518,8 @@ document.getElementById("light-toggle").addEventListener("change", (e) => {
   })
   .catch(err => {
     console.error("Error controlling light:", err);
-    showFeedback("Failed to control light", "danger", () => document.getElementById("light-toggle").dispatchEvent(new Event("change")));
-    showErrorToast("Failed to control light. Please try again.", () => document.getElementById("light-toggle").dispatchEvent(new Event("change")));
-    e.target.checked = !e.target.checked; // Revert toggle
+    showFeedback("Failed to control light", "danger", () => document.getElementById("light-btn").click());
+    showErrorToast("Failed to control light. Please try again.", () => document.getElementById("light-btn").click());
     isLoading = false;
     toggleSpinner(false);
   });
@@ -525,6 +529,7 @@ document.getElementById("light-toggle").addEventListener("change", (e) => {
 function fetchLogs(filter = '') {
   if (!isAdmin) {
     console.log("Access denied: Logs are admin-only");
+    showFeedback("Access denied: Logs are admin-only", "danger");
     return;
   }
   if (isLoading) {
@@ -534,7 +539,7 @@ function fetchLogs(filter = '') {
   isLoading = true;
   toggleSpinner(true);
   showFeedback("Loading logs...", "info");
-  console.log("Fetching logs with filter:", filter);
+  console.log("Fetching logs for group:", currentGroup, "with filter:", filter);
   fetch(`${API_BASE}/devices/logs`, {
     headers: { "Authorization": `Bearer ${API_TOKEN}` }
   })
@@ -546,11 +551,15 @@ function fetchLogs(filter = '') {
     console.log("Logs received:", logs);
     const logList = document.getElementById("log-list");
     logList.innerHTML = "";
-    const filteredLogs = logs.filter(log => 
-      log.action.toLowerCase().includes(filter.toLowerCase()) || 
-      log.group.toString().includes(filter) ||
-      (plantNames[log.group] && plantNames[log.group].toLowerCase().includes(filter.toLowerCase()))
-    );
+    const groupFilter = document.getElementById("log-group-filter")?.value || currentGroup.toString();
+    const filteredLogs = logs.filter(log => {
+      const matchesGroup = groupFilter === "all" || log.group.toString() === groupFilter;
+      const matchesFilter = 
+        log.action.toLowerCase().includes(filter.toLowerCase()) || 
+        log.group.toString().includes(filter) ||
+        (plantNames[log.group] && plantNames[log.group].toLowerCase().includes(filter.toLowerCase()));
+      return matchesGroup && matchesFilter;
+    });
     filteredLogs.forEach(log => {
       const li = document.createElement("li");
       const plantName = plantNames[log.group] || `Group ${log.group}`;
@@ -570,9 +579,13 @@ function fetchLogs(filter = '') {
   });
 }
 
-// Log filter
+// Log filters
 document.getElementById("log-filter").addEventListener("input", (e) => {
   fetchLogs(e.target.value);
+});
+
+document.getElementById("log-group-filter")?.addEventListener("change", (e) => {
+  fetchLogs(document.getElementById("log-filter").value);
 });
 
 // Dark mode toggle
@@ -592,9 +605,16 @@ document.getElementById("save-settings").addEventListener("click", () => {
   pollIntervalId = setInterval(fetchSensorData, refreshInterval);
   console.log("Settings saved, refresh interval:", refreshInterval);
   if (isAdmin) {
-    savePlantNames();
+    savePlantNames().then(() => {
+      const modal = bootstrap.Modal.getInstance(document.getElementById("settingsModal"));
+      modal.hide();
+    }).catch(() => {
+      // Modal stays open on error to allow correction
+    });
   } else {
     showFeedback("Settings saved", "success");
+    const modal = bootstrap.Modal.getInstance(document.getElementById("settingsModal"));
+    modal.hide();
   }
 });
 

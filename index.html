@@ -57,11 +57,14 @@
               <li class="nav-item admin-nav d-none">
                 <a class="nav-link" href="#" data-group="4">Group 4</a>
               </li>
+              <li class="nav-item admin-nav d-none">
+                <button id="settings-btn" class="nav-link btn btn-link" data-bs-toggle="modal" data-bs-target="#settingsModal" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Open settings"><i class="fas fa-cog"></i> Settings</button>
+              </li>
               <li id="logs-nav" class="nav-item d-none">
                 <a class="nav-link" href="#" data-group="logs">Logs</a>
               </li>
               <li class="nav-item">
-                <button id="logout-btn" class="btn btn-outline-success ms-2">Logout</button>
+                <button id="logout-btn" class="btn btn-success ms-2">Logout</button>
               </li>
             </ul>
           </div>
@@ -118,7 +121,6 @@
       <div class="hero-section text-center mb-5 shadow-lg p-4">
         <h1 class="display-5 text-shadow" id="plant-name">Cactus Dashboard</h1>
         <p class="lead text-muted">Monitor and control your plant watering system</p>
-        <button id="settings-btn" class="btn btn-outline-success d-none" data-bs-toggle="modal" data-bs-target="#settingsModal" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Open settings"><i class="fas fa-cog"></i></button>
       </div>
 
       <div id="loading-spinner" class="text-center my-4 d-none">
@@ -169,10 +171,7 @@
           <div class="col-md-6 mb-4">
             <div class="card control-card shadow-sm">
               <div class="card-body d-flex align-items-center">
-                <div class="form-check form-switch me-3">
-                  <input class="form-check-input" type="checkbox" id="pump-toggle" aria-label="Toggle water pump">
-                  <label class="form-check-label slider" for="pump-toggle"><i class="fas fa-tint"></i></label>
-                </div>
+                <button id="pump-btn" class="btn btn-outline-primary me-3 control-btn" aria-label="Toggle water pump"><i class="fas fa-tint"></i></button>
                 <p class="mb-0" id="pump-status">Pump: OFF</p>
               </div>
             </div>
@@ -180,10 +179,7 @@
           <div class="col-md-6 mb-4">
             <div class="card control-card shadow-sm">
               <div class="card-body d-flex align-items-center">
-                <div class="form-check form-switch me-3">
-                  <input class="form-check-input" type="checkbox" id="light-toggle" aria-label="Toggle light">
-                  <label class="form-check-label slider" for="light-toggle"><i class="fas fa-lightbulb"></i></label>
-                </div>
+                <button id="light-btn" class="btn btn-outline-warning me-3 control-btn" aria-label="Toggle light"><i class="fas fa-lightbulb"></i></button>
                 <p class="mb-0" id="light-status">Light: OFF</p>
               </div>
             </div>
@@ -195,6 +191,16 @@
         <h2 class="text-center mb-4 text-shadow">System Logs</h2>
         <div class="card shadow-sm">
           <div class="card-body">
+            <div class="mb-3 admin-only d-none">
+              <label for="log-group-filter" class="form-label">Filter by Group</label>
+              <select class="form-select" id="log-group-filter">
+                <option value="all">All Groups</option>
+                <option value="1">Group 1</option>
+                <option value="2">Group 2</option>
+                <option value="3">Group 3</option>
+                <option value="4">Group 4</option>
+              </select>
+            </div>
             <input type="text" class="form-control mb-3" id="log-filter" placeholder="Filter logs...">
             <ul id="log-list" class="list-unstyled"></ul>
           </div>
