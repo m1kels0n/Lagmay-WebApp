@@ -145,10 +145,13 @@ function showErrorToast(message, retryCallback = null) {
   toastBody.innerHTML = retryCallback 
     ? `${message} <button class="btn btn-sm btn-outline-light ms-2 retry-toast-btn" aria-label="Retry action">Retry</button>` 
     : message;
-  const toast = bootstrap.Toast.getOrCreateInstance(toastElement);
+  const toast = bootstrap.Toast.getOrCreateInstance(toastElement, { delay: 7000 });
   if (retryCallback) {
     const retryBtn = toastBody.querySelector('.retry-toast-btn');
-    retryBtn.addEventListener('click', retryCallback);
+    retryBtn.addEventListener('click', () => {
+      retryCallback();
+      toast.hide();
+    });
   }
   toast.show();
 }
@@ -178,6 +181,12 @@ document.getElementById("login-form").addEventListener("submit", (e) => {
       document.getElementById("logs-nav").classList.remove("d-none");
       document.getElementById("settings-btn").classList.remove("d-none");
       document.querySelector(".nav-link[data-group='1']").classList.add("active");
+      currentGroup = 1;
+      initCharts();
+      fetchSensorData();
+      clearInterval(pollIntervalId);
+      pollIntervalId = setInterval(fetchSensorData, refreshInterval);
+      console.log("Polling interval set for admin:", refreshInterval);
     } else {
       currentGroup = user.group;
       document.getElementById("group-id").textContent = currentGroup;
@@ -186,7 +195,6 @@ document.getElementById("login-form").addEventListener("submit", (e) => {
       showFeedback("Fetching data...", "info");
       initCharts();
       fetchSensorData();
-      // Ensure polling is set up
       clearInterval(pollIntervalId);
       pollIntervalId = setInterval(fetchSensorData, refreshInterval);
       console.log("Polling interval set for user:", refreshInterval);
@@ -229,6 +237,7 @@ document.querySelectorAll(".nav-link").forEach(tab => {
       if (soilMoistureChart) soilMoistureChart.destroy();
       if (temperatureChart) temperatureChart.destroy();
       if (humidityChart) humidityChart.destroy();
+      clearInterval(pollIntervalId);
       fetchLogs();
     } else {
       currentGroup = parseInt(e.target.dataset.group);
@@ -238,10 +247,9 @@ document.querySelectorAll(".nav-link").forEach(tab => {
       document.getElementById("logs").classList.add("d-none");
       initCharts();
       fetchSensorData();
-      // Ensure polling is set up for admin
       clearInterval(pollIntervalId);
       pollIntervalId = setInterval(fetchSensorData, refreshInterval);
-      console.log("Polling interval set for admin:", refreshInterval);
+      console.log("Polling interval set for admin group switch:", refreshInterval);
     }
   });
 });

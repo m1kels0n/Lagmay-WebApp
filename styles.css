@@ -8,6 +8,15 @@ body.dark-mode {
   background: linear-gradient(135deg, #1b5e20 0%, #388e3c 100%);
   color: #e0e0e0;
 }
+body.dark-mode h1, body.dark-mode h2, body.dark-mode h4, body.dark-mode h5,
+body.dark-mode p, body.dark-mode label, body.dark-mode li,
+body.dark-mode .navbar-brand, body.dark-mode .nav-link,
+body.dark-mode .form-control, body.dark-mode .modal-title,
+body.dark-mode .toast-header, body.dark-mode .toast-body,
+body.dark-mode #pump-status, body.dark-mode #light-status {
+  color: #e0e0e0 !important;
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.3);
+}
 body.dark-mode .card {
   background: linear-gradient(145deg, #2e2e2e, #424242);
 }
@@ -20,12 +29,15 @@ body.dark-mode .navbar {
 body.dark-mode .text-muted {
   color: #b0b0b0 !important;
 }
-body.dark-mode .card-title, body.dark-mode .card-text, body.dark-mode #pump-status, body.dark-mode #light-status {
-  color: #e0e0e0 !important;
-}
 body.dark-mode .modal-content {
   background-color: #2e2e2e;
-  color: #e0e0e0;
+}
+body.dark-mode .form-control {
+  background-color: #424242;
+  border-color: #616161;
+}
+body.dark-mode .btn-close {
+  filter: invert(1);
 }
 .container {
   max-width: 1200px;
@@ -159,6 +171,9 @@ body.dark-mode .chart-label {
 }
 .text-shadow {
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+body.dark-mode .text-shadow {
+  text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.3);
 }
 .switch {
   position: relative;
