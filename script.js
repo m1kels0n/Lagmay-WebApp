@@ -177,8 +177,12 @@ function fetchSensorData() {
     document.getElementById("soil-moisture").textContent = data.soil_moisture || 0;
     document.getElementById("temperature").textContent = data.temperature || 0;
     document.getElementById("humidity").textContent = data.humidity || 0;
-    document.getElementById("pump-btn").textContent = `Pump: ${data.pump_state ? "ON" : "OFF"}`;
-    document.getElementById("light-btn").textContent = `Light: ${data.light_state ? "ON" : "OFF"}`;
+    document.getElementById("pump-toggle").checked = data.pump_state || false;
+    document.getElementById("pump-status").textContent = data.pump_state ? "ON" : "OFF";
+    document.getElementById("pump-toggle").setAttribute("aria-label", `Toggle water pump, currently ${data.pump_state ? "ON" : "OFF"}`);
+    document.getElementById("light-toggle").checked = data.light_state || false;
+    document.getElementById("light-status").textContent = data.light_state ? "ON" : "OFF";
+    document.getElementById("light-toggle").setAttribute("aria-label", `Toggle light, currently ${data.light_state ? "ON" : "OFF"}`);
     // Update gauges
     soilMoistureChart.data.datasets[0].value = Math.min(data.soil_moisture || 0, 100);
     soilMoistureChart.update();
@@ -202,15 +206,19 @@ function fetchSensorData() {
 }
 
 // Control pump
-document.getElementById("pump-btn").addEventListener("click", () => {
+document.getElementById("pump-toggle").addEventListener("change", (e) => {
   if (!currentUser || (currentUser.role !== "admin" && currentUser.group !== currentGroup)) {
     console.log("Access denied: User not authorized for group", currentGroup);
+    e.target.checked = !e.target.checked; // Revert toggle
     return;
   }
-  if (isLoading) return;
+  if (isLoading) {
+    e.target.checked = !e.target.checked; // Revert toggle
+    return;
+  }
   isLoading = true;
-  const newState = document.getElementById("pump-btn").textContent.includes("OFF");
-  console.log("Pump button clicked, new state:", newState);
+  const newState = e.target.checked;
+  console.log("Pump toggle changed, new state:", newState);
   showFeedback(`Turning pump ${newState ? "ON" : "OFF"}...`, "info");
   fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
     method: "POST",
@@ -228,20 +236,25 @@ document.getElementById("pump-btn").addEventListener("click", () => {
   .catch(err => {
     console.error("Error controlling pump:", err);
     showFeedback("Failed to control pump", "danger");
+    e.target.checked = !e.target.checked; // Revert toggle
     isLoading = false;
   });
 });
 
 // Control light
-document.getElementById("light-btn").addEventListener("click", () => {
+document.getElementById("light-toggle").addEventListener("change", (e) => {
   if (!currentUser || (currentUser.role !== "admin" && currentUser.group !== currentGroup)) {
     console.log("Access denied: User not authorized for group", currentGroup);
+    e.target.checked = !e.target.checked; // Revert toggle
     return;
   }
-  if (isLoading) return;
+  if (isLoading) {
+    e.target.checked = !e.target.checked; // Revert toggle
+    return;
+  }
   isLoading = true;
-  const newState = document.getElementById("light-btn").textContent.includes("OFF");
-  console.log("Light button clicked, new state:", newState);
+  const newState = e.target.checked;
+  console.log("Light toggle changed, new state:", newState);
   showFeedback(`Turning light ${newState ? "ON" : "OFF"}...`, "info");
   fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
     method: "POST",
@@ -259,6 +272,7 @@ document.getElementById("light-btn").addEventListener("click", () => {
   .catch(err => {
     console.error("Error controlling light:", err);
     showFeedback("Failed to control light", "danger");
+    e.target.checked = !e.target.checked; // Revert toggle
     isLoading = false;
   });
 });
