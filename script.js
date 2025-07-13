@@ -60,11 +60,25 @@ function savePlantNames() {
     showErrorToast("Only admin can save plant names.");
     return Promise.reject(new Error("Access denied"));
   }
+  // Validate plant names
+  for (let i = 1; i <= 4; i++) {
+    const input = document.getElementById(`plant-name-${i}-input`);
+    if (input) {
+      const name = input.value.trim();
+      if (name.length > 20) {
+        showFeedback(`Plant name for Group ${i} is too long (max 20 characters)`, "danger");
+        showErrorToast(`Plant name for Group ${i} exceeds 20 characters.`);
+        return Promise.reject(new Error("Invalid plant name"));
+      }
+      plantNames[i] = name;
+    }
+  }
   console.log("Saving plant names:", plantNames);
   const plantNamesRef = ref(db, "plantNames");
   return set(plantNamesRef, plantNames)
     .then(() => {
       showFeedback("Plant names saved", "success");
+      updatePlantNameUI();
     })
     .catch(err => {
       console.error("Error saving plant names:", err);
@@ -76,11 +90,20 @@ function savePlantNames() {
 
 // Update plant name UI
 function updatePlantNameUI() {
-  document.getElementById("plant-name").textContent = plantNames[currentGroup] || `Group ${currentGroup}`;
+  const plantNameElement = document.getElementById("plant-name");
+  if (plantNameElement) {
+    plantNameElement.textContent = plantNames[currentGroup] || `Group ${currentGroup} Dashboard`;
+  }
   if (isAdmin) {
     for (let i = 1; i <= 4; i++) {
-      document.getElementById(`plant-name-${i}`).textContent = plantNames[i] || `Group ${i}`;
-      document.getElementById(`plant-name-${i}-input`).value = plantNames[i] || "";
+      const navElement = document.querySelector(`.admin-nav a[data-group="${i}"]`);
+      const inputElement = document.getElementById(`plant-name-${i}-input`);
+      if (navElement) {
+        navElement.textContent = `Group ${i}`;
+      }
+      if (inputElement) {
+        inputElement.value = plantNames[i] || "";
+      }
     }
   }
 }
@@ -237,7 +260,7 @@ onAuthStateChanged(auth, (user) => {
     document.getElementById("dashboard").classList.remove("d-none");
     if (isAdmin) {
       console.log("Admin user, showing navbar and plant name settings");
-      document.getElementById("admin-nav").classList.remove("d-none");
+      document.querySelectorAll(".admin-nav").forEach(el => el.classList.remove("d-none"));
       document.getElementById("logs-nav").classList.remove("d-none");
       document.getElementById("settings-btn").classList.remove("d-none");
       document.getElementById("plant-name-settings").classList.remove("d-none");
@@ -246,7 +269,7 @@ onAuthStateChanged(auth, (user) => {
     } else {
       const username = user.email.split('@')[0];
       currentGroup = parseInt(username.replace("user", ""));
-      document.getElementById("admin-nav").classList.add("d-none");
+      document.querySelectorAll(".admin-nav").forEach(el => el.classList.add("d-none"));
       document.getElementById("plant-name-settings").classList.add("d-none");
       console.log("Initializing dashboard for user, group:", currentGroup);
     }
@@ -325,7 +348,7 @@ document.querySelectorAll(".nav-link").forEach(tab => {
       fetchLogs();
     } else {
       currentGroup = parseInt(e.target.dataset.group);
-      document.getElementById("plant-name").textContent = plantNames[currentGroup] || `Group ${currentGroup}`;
+      document.getElementById("plant-name").textContent = plantNames[currentGroup] || `Group ${currentGroup} Dashboard`;
       document.getElementById("sensor-data").classList.remove("d-none");
       document.getElementById("controls").classList.remove("d-none");
       document.getElementById("logs").classList.add("d-none");
@@ -569,12 +592,10 @@ document.getElementById("save-settings").addEventListener("click", () => {
   pollIntervalId = setInterval(fetchSensorData, refreshInterval);
   console.log("Settings saved, refresh interval:", refreshInterval);
   if (isAdmin) {
-    for (let i = 1; i <= 4; i++) {
-      plantNames[i] = document.getElementById(`plant-name-${i}-input`).value.trim();
-    }
-    savePlantNames().then(() => updatePlantNameUI());
+    savePlantNames();
+  } else {
+    showFeedback("Settings saved", "success");
   }
-  showFeedback("Settings saved", "success");
 });
 
 // Manual refresh
