@@ -1,15 +1,25 @@
 // Firebase configuration (replace with your Firebase project's config)
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "your-api-key",
-  authDomain: "plant-watering-system-123.firebaseapp.com",
-  databaseURL: "https://plant-watering-system-123-default-rtdb.firebaseio.com",
-  projectId: "plant-watering-system-123",
-  storageBucket: "plant-watering-system-123.appspot.com",
-  messagingSenderId: "your-sender-id",
-  appId: "your-app-id"
+  apiKey: "AIzaSyC-jzkS6N6DwVW_8HlGmDLbgPP-HFZEzfs",
+  authDomain: "lagmay-irrigation.firebaseapp.com",
+  databaseURL: "https://lagmay-irrigation-default-rtdb.firebaseio.com",
+  projectId: "lagmay-irrigation",
+  storageBucket: "lagmay-irrigation.firebasestorage.app",
+  messagingSenderId: "113788755522",
+  appId: "1:113788755522:web:d2f71e315f416b3dbb17db",
+  measurementId: "G-8V0VYYL087"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 // API settings (replace with actual Arduino Cloud API details)
 const API_BASE = "https://api2.arduino.cc/iot/v2";
