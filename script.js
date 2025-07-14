@@ -21,7 +21,7 @@ const analytics = getAnalytics(app);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-// API settings (replace with actual Arduino Cloud API details)
+// API settings (replace with actual Arduino Cloud API token)
 const API_BASE = "https://api2.arduino.cc/iot/v2";
 const API_TOKEN = "your_api_token";
 let currentUser = null;
@@ -31,6 +31,7 @@ let refreshInterval = 5000;
 let pollIntervalId = null;
 let plantNames = { "1": "", "2": "", "3": "", "4": "" };
 let isAdmin = false;
+let spinnerTimeout = null;
 
 // Gauge charts
 let soilMoistureChart, temperatureChart, humidityChart;
@@ -60,7 +61,6 @@ function savePlantNames() {
     showErrorToast("Only admin can save plant names.");
     return Promise.reject(new Error("Access denied"));
   }
-  // Validate plant names
   for (let i = 1; i <= 4; i++) {
     const input = document.getElementById(`plant-name-${i}-input`);
     if (input) {
@@ -110,6 +110,18 @@ function updatePlantNameUI() {
 
 function initCharts() {
   console.log("Initializing charts for group:", currentGroup);
+  // Cleanup existing charts and resize listener
+  if (soilMoistureChart) soilMoistureChart.destroy();
+  if (temperatureChart) temperatureChart.destroy();
+  if (humidityChart) humidityChart.destroy();
+  window.removeEventListener('resize', resizeCharts);
+
+  if (typeof Chart === 'undefined') {
+    console.error("Chart.js is not loaded. Charts cannot be initialized.");
+    showErrorToast("Failed to load charts. Please check your internet connection or reload the page.");
+    return;
+  }
+
   const ctxSoil = document.getElementById("soil-moisture-gauge").getContext("2d");
   const ctxTemp = document.getElementById("temperature-gauge").getContext("2d");
   const ctxHum = document.getElementById("humidity-gauge").getContext("2d");
@@ -128,17 +140,26 @@ function initCharts() {
     options: {
       cutout: "80%",
       responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 1,
       plugins: {
         legend: { display: false },
         tooltip: { enabled: false },
         afterDraw: (chart) => {
           const ctx = chart.ctx;
           ctx.save();
-          ctx.font = "1.5rem Poppins";
+          const width = chart.width;
+          const height = chart.height;
+          const fontSize = Math.min(24, height / 5); // Increase font size, cap at 24px
+          ctx.font = `${fontSize}px Poppins`;
           ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(`${chart.data.datasets[0].data[0]}%`, chart.width / 2, chart.height / 2);
+          const value = document.getElementById("soil-moisture").textContent || "0%";
+          const icon = "fas fa-tint"; // Soil Moisture icon
+          ctx.fillText(value, width / 2, height / 2 - fontSize / 2);
+          ctx.font = `${fontSize / 1.5}px FontAwesome`; // Adjust icon size relative to text
+          ctx.fillText(String.fromCharCode(parseInt(icon.split(" ")[1].substring(2), 16)), width / 2, height / 2 + fontSize / 2);
           ctx.restore();
         }
       },
@@ -160,17 +181,26 @@ function initCharts() {
     options: {
       cutout: "80%",
       responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 1,
       plugins: {
         legend: { display: false },
         tooltip: { enabled: false },
         afterDraw: (chart) => {
           const ctx = chart.ctx;
           ctx.save();
-          ctx.font = "1.5rem Poppins";
+          const width = chart.width;
+          const height = chart.height;
+          const fontSize = Math.min(24, height / 5); // Increase font size, cap at 24px
+          ctx.font = `${fontSize}px Poppins`;
           ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(`${chart.data.datasets[0].data[0]}°C`, chart.width / 2, chart.height / 2);
+          const value = document.getElementById("temperature").textContent || "0°C";
+          const icon = "fas fa-thermometer-half"; // Temperature icon
+          ctx.fillText(value, width / 2, height / 2 - fontSize / 2);
+          ctx.font = `${fontSize / 1.5}px FontAwesome`; // Adjust icon size
+          ctx.fillText(String.fromCharCode(parseInt(icon.split(" ")[1].substring(2), 16)), width / 2, height / 2 + fontSize / 2);
           ctx.restore();
         }
       },
@@ -192,22 +222,39 @@ function initCharts() {
     options: {
       cutout: "80%",
       responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 1,
       plugins: {
         legend: { display: false },
         tooltip: { enabled: false },
         afterDraw: (chart) => {
           const ctx = chart.ctx;
           ctx.save();
-          ctx.font = "1.5rem Poppins";
+          const width = chart.width;
+          const height = chart.height;
+          const fontSize = Math.min(24, height / 5); // Increase font size, cap at 24px
+          ctx.font = `${fontSize}px Poppins`;
           ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(`${chart.data.datasets[0].data[0]}%`, chart.width / 2, chart.height / 2);
+          const value = document.getElementById("humidity").textContent || "0%";
+          const icon = "fas fa-water"; // Humidity icon
+          ctx.fillText(value, width / 2, height / 2 - fontSize / 2);
+          ctx.font = `${fontSize / 1.5}px FontAwesome`; // Adjust icon size
+          ctx.fillText(String.fromCharCode(parseInt(icon.split(" ")[1].substring(2), 16)), width / 2, height / 2 + fontSize / 2);
           ctx.restore();
         }
       },
       animation: { animateRotate: true, animateScale: true }
     }
+  });
+
+  window.addEventListener('resize', resizeCharts);
+}
+
+function resizeCharts() {
+  [soilMoistureChart, temperatureChart, humidityChart].forEach(chart => {
+    if (chart) chart.resize();
   });
 }
 
@@ -220,7 +267,10 @@ function showFeedback(message, type = 'success', retryCallback = null) {
   feedback.className = `alert alert-${type} d-block fade show`;
   gsap.from(feedback, { scale: 0.8, opacity: 0, duration: 0.5, ease: "bounce.out" });
   if (retryCallback) {
+    const existingBtn = feedback.querySelector('.retry-btn');
+    if (existingBtn) existingBtn.removeEventListener('click', existingBtn._retryCallback);
     feedback.querySelector('.retry-btn').addEventListener('click', retryCallback);
+    feedback.querySelector('.retry-btn')._retryCallback = retryCallback;
   }
   setTimeout(() => {
     feedback.className = 'alert d-none';
@@ -236,18 +286,55 @@ function showErrorToast(message, retryCallback = null) {
     : message;
   const toast = bootstrap.Toast.getOrCreateInstance(toastElement, { delay: 7000 });
   if (retryCallback) {
+    const existingBtn = toastBody.querySelector('.retry-toast-btn');
+    if (existingBtn) existingBtn.removeEventListener('click', existingBtn._retryCallback);
     const retryBtn = toastBody.querySelector('.retry-toast-btn');
     retryBtn.addEventListener('click', () => {
       retryCallback();
       toast.hide();
     });
+    retryBtn._retryCallback = retryCallback;
   }
   toast.show();
 }
 
+// Show error message inline
+function showErrorMessage(message, retryCallback = null) {
+  const errorMessage = document.getElementById('error-message');
+  errorMessage.innerHTML = retryCallback 
+    ? `${message} <button class="btn btn-sm btn-outline-danger ms-2 retry-error-btn" aria-label="Retry action">Retry</button>` 
+    : message;
+  errorMessage.classList.remove('d-none');
+  toggleSpinner(false); // Ensure spinner is hidden
+  if (retryCallback) {
+    const existingBtn = errorMessage.querySelector('.retry-error-btn');
+    if (existingBtn) existingBtn.removeEventListener('click', existingBtn._retryCallback);
+    const retryBtn = errorMessage.querySelector('.retry-error-btn');
+    retryBtn.addEventListener('click', () => {
+      retryCallback();
+      errorMessage.classList.add('d-none');
+    });
+    retryBtn._retryCallback = retryCallback;
+  }
+  setTimeout(() => {
+    errorMessage.classList.add('d-none');
+  }, 7000);
+}
+
 // Toggle loading spinner
 function toggleSpinner(show) {
-  document.getElementById('loading-spinner').classList[show ? 'remove' : 'add']('d-none');
+  const spinner = document.getElementById('loading-spinner');
+  if (show) {
+    spinner.classList.remove('d-none');
+    if (spinnerTimeout) clearTimeout(spinnerTimeout);
+    spinnerTimeout = setTimeout(() => {
+      spinner.classList.add('d-none');
+      console.log("Spinner timeout triggered");
+    }, 5000);
+  } else {
+    spinner.classList.add('d-none');
+    if (spinnerTimeout) clearTimeout(spinnerTimeout);
+  }
 }
 
 // Handle authentication state
@@ -282,7 +369,6 @@ onAuthStateChanged(auth, (user) => {
     clearInterval(pollIntervalId);
     pollIntervalId = setInterval(fetchSensorData, refreshInterval);
     console.log("Polling interval set:", refreshInterval);
-    // Initialize tooltips
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
       bootstrap.Tooltip.getOrCreateInstance(el);
     });
@@ -310,12 +396,12 @@ document.getElementById("login-form").addEventListener("submit", (e) => {
   signInWithEmailAndPassword(auth, email, password)
     .then(userCredential => {
       console.log("User authenticated:", userCredential.user.email);
-      // Handled by onAuthStateChanged
     })
     .catch(err => {
       console.error("Login failed:", err);
       showFeedback("Invalid credentials", "danger");
       showErrorToast("Invalid username or password");
+      showErrorMessage("Invalid username or password");
     });
 });
 
@@ -327,6 +413,7 @@ document.getElementById("logout-btn").addEventListener("click", () => {
   }).catch(err => {
     console.error("Logout failed:", err);
     showFeedback("Failed to log out", "danger");
+    showErrorMessage("Failed to log out");
   });
 });
 
@@ -363,10 +450,12 @@ document.querySelectorAll(".nav-link").forEach(tab => {
   });
 });
 
-// Fetch sensor data
-function fetchSensorData() {
+// Fetch sensor data with retry
+async function fetchSensorData(attempt = 1, maxAttempts = 3) {
   if (!currentUser || (!isAdmin && currentUser.email !== `user${currentGroup}@plantwatering.com`)) {
     console.log("Access denied: User not authorized for group", currentGroup);
+    showErrorMessage("Access denied: User not authorized for group " + currentGroup);
+    isLoading = false; // Reset on access denial
     return;
   }
   if (isLoading) {
@@ -376,17 +465,17 @@ function fetchSensorData() {
   isLoading = true;
   toggleSpinner(true);
   showFeedback("Loading sensor data...", "info");
-  console.log("Fetching sensor data for group:", currentGroup);
-  fetch(`${API_BASE}/devices/group${currentGroup}/sensors`, {
-    headers: { "Authorization": `Bearer ${API_TOKEN}` }
-  })
-  .then(res => {
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    return res.json();
-  })
-  .then(data => {
+  console.log(`Fetching sensor data for group ${currentGroup}, attempt ${attempt}/${maxAttempts}`);
+  try {
+    const res = await fetch(`${API_BASE}/devices/group${currentGroup}/sensors`, {
+      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
+    }
+    const data = await res.json();
     console.log("Sensor data received:", data);
-    // Update numerical values
     document.getElementById("soil-moisture").textContent = data.soil_moisture || 0;
     document.getElementById("temperature").textContent = data.temperature || 0;
     document.getElementById("humidity").textContent = data.humidity || 0;
@@ -402,53 +491,56 @@ function fetchSensorData() {
     lightBtn.setAttribute("data-active", isLightActive);
     lightBtn.setAttribute("aria-label", `Toggle light, currently ${isLightActive ? "ON" : "OFF"}`);
     document.getElementById("light-status").textContent = isLightActive ? "Light: ON" : "Light: OFF";
-    // Update gauges with animation
     gsap.to(soilMoistureChart.data.datasets[0], {
       data: [Math.min(data.soil_moisture || 0, 100), 100 - Math.min(data.soil_moisture || 0, 100)],
       duration: 0.5,
-      onUpdate: () => soilMoistureChart.update(),
-      onComplete: () => document.getElementById("soil-moisture-gauge").classList.add("pulse")
+      onUpdate: () => soilMoistureChart.update()
     });
-    document.getElementById("soil-moisture-gauge").setAttribute("aria-label", `Soil Moisture Gauge, ${data.soil_moisture || 0}%`);
     gsap.to(temperatureChart.data.datasets[0], {
       data: [Math.min(data.temperature || 0, 50), 50 - Math.min(data.temperature || 0, 50)],
       duration: 0.5,
-      onUpdate: () => temperatureChart.update(),
-      onComplete: () => document.getElementById("temperature-gauge").classList.add("pulse")
+      onUpdate: () => temperatureChart.update()
     });
-    document.getElementById("temperature-gauge").setAttribute("aria-label", `Temperature Gauge, ${data.temperature || 0}°C`);
     gsap.to(humidityChart.data.datasets[0], {
       data: [Math.min(data.humidity || 0, 100), 100 - Math.min(data.humidity || 0, 100)],
       duration: 0.5,
-      onUpdate: () => humidityChart.update(),
-      onComplete: () => document.getElementById("humidity-gauge").classList.add("pulse")
+      onUpdate: () => humidityChart.update()
     });
-    document.getElementById("humidity-gauge").setAttribute("aria-label", `Humidity Gauge, ${data.humidity || 0}%`);
-    // Remove pulse after animation
-    setTimeout(() => {
-      document.getElementById("soil-moisture-gauge").classList.remove("pulse");
-      document.getElementById("temperature-gauge").classList.remove("pulse");
-      document.getElementById("humidity-gauge").classList.remove("pulse");
-    }, 1000);
-    // Update timestamp
     document.getElementById("last-updated").textContent = new Date().toLocaleString();
     showFeedback("Sensor data updated", "success");
     isLoading = false;
     toggleSpinner(false);
-  })
-  .catch(err => {
-    console.error("Error fetching sensor data:", err);
-    showFeedback("Failed to fetch sensor data", "danger", fetchSensorData);
-    showErrorToast("Unable to connect to Arduino Cloud. Please check your network or API token.", fetchSensorData);
-    isLoading = false;
-    toggleSpinner(false);
-  });
+  } catch (err) {
+    console.error(`Error fetching sensor data (attempt ${attempt}):`, err);
+    let errorMessage = "Unable to connect to Arduino Cloud. Please check your network or API token.";
+    if (err.message.includes("401")) {
+      errorMessage = "Invalid Arduino Cloud API token. Please update the token in script.js.";
+      showErrorToast(errorMessage, fetchSensorData);
+    } else if (err.message.includes("404")) {
+      errorMessage = `Device group ${currentGroup} not found. Check Arduino Cloud configuration.`;
+      showErrorToast(errorMessage, fetchSensorData);
+    } else if (err.message.includes("net::ERR_FAILED")) {
+      errorMessage = "Network error connecting to Arduino Cloud. Check your connection or server status.";
+      showErrorToast(errorMessage, fetchSensorData);
+    }
+    if (attempt < maxAttempts) {
+      console.log(`Retrying fetchSensorData, attempt ${attempt + 1}`);
+      setTimeout(() => fetchSensorData(attempt + 1, maxAttempts), 2000);
+    } else {
+      showFeedback("Failed to fetch sensor data", "danger", fetchSensorData);
+      showErrorMessage(errorMessage, fetchSensorData);
+      isLoading = false;
+      toggleSpinner(false);
+    }
+  }
 }
 
-// Control pump
-document.getElementById("pump-btn").addEventListener("click", () => {
+// Control pump with retry
+async function controlPump(newState, attempt = 1, maxAttempts = 3) {
   if (!currentUser || (!isAdmin && currentUser.email !== `user${currentGroup}@plantwatering.com`)) {
     console.log("Access denied: User not authorized for group", currentGroup);
+    showErrorMessage("Access denied: User not authorized for group " + currentGroup);
+    isLoading = false; // Reset on access denial
     return;
   }
   if (isLoading) {
@@ -458,37 +550,54 @@ document.getElementById("pump-btn").addEventListener("click", () => {
   isLoading = true;
   toggleSpinner(true);
   const pumpBtn = document.getElementById("pump-btn");
-  const newState = pumpBtn.getAttribute("data-active") !== "true";
-  console.log("Pump button clicked, new state:", newState);
+  console.log(`Pump button clicked, new state: ${newState}, attempt ${attempt}/${maxAttempts}`);
   showFeedback(`Turning pump ${newState ? "ON" : "OFF"}...`, "info");
   gsap.to(pumpBtn, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
-  fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
-    method: "POST",
-    headers: { 
-      "Authorization": `Bearer ${API_TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ pump_state: newState })
-  })
-  .then(() => {
-    fetchSensorData();
+  try {
+    const res = await fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
+      method: "POST",
+      headers: { 
+        "Authorization": `Bearer ${API_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ pump_state: newState })
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
+    }
+    await fetchSensorData();
     showFeedback(`Pump turned ${newState ? "ON" : "OFF"}`, "success");
     isLoading = false;
     toggleSpinner(false);
-  })
-  .catch(err => {
-    console.error("Error controlling pump:", err);
-    showFeedback("Failed to control pump", "danger", () => document.getElementById("pump-btn").click());
-    showErrorToast("Failed to control pump. Please try again.", () => document.getElementById("pump-btn").click());
-    isLoading = false;
-    toggleSpinner(false);
-  });
-});
+  } catch (err) {
+    console.error(`Error controlling pump (attempt ${attempt}):`, err);
+    let errorMessage = "Failed to control pump. Please try again.";
+    if (err.message.includes("401")) {
+      errorMessage = "Invalid Arduino Cloud API token. Please update the token in script.js.";
+      showErrorToast(errorMessage, () => document.getElementById("pump-btn").click());
+    } else if (err.message.includes("net::ERR_FAILED")) {
+      errorMessage = "Network error controlling pump. Check your connection or server status.";
+      showErrorToast(errorMessage, () => document.getElementById("pump-btn").click());
+    }
+    if (attempt < maxAttempts) {
+      console.log(`Retrying controlPump, attempt ${attempt + 1}`);
+      setTimeout(() => controlPump(newState, attempt + 1, maxAttempts), 2000);
+    } else {
+      showFeedback("Failed to control pump", "danger", () => document.getElementById("pump-btn").click());
+      showErrorMessage(errorMessage, () => document.getElementById("pump-btn").click());
+      isLoading = false;
+      toggleSpinner(false);
+    }
+  }
+}
 
-// Control light
-document.getElementById("light-btn").addEventListener("click", () => {
+// Control light with retry
+async function controlLight(newState, attempt = 1, maxAttempts = 3) {
   if (!currentUser || (!isAdmin && currentUser.email !== `user${currentGroup}@plantwatering.com`)) {
     console.log("Access denied: User not authorized for group", currentGroup);
+    showErrorMessage("Access denied: User not authorized for group " + currentGroup);
+    isLoading = false; // Reset on access denial
     return;
   }
   if (isLoading) {
@@ -498,38 +607,55 @@ document.getElementById("light-btn").addEventListener("click", () => {
   isLoading = true;
   toggleSpinner(true);
   const lightBtn = document.getElementById("light-btn");
-  const newState = lightBtn.getAttribute("data-active") !== "true";
-  console.log("Light button clicked, new state:", newState);
-  showFeedback(`Turning light ${newState ? "ON" : "OFF"}...`, "info");
+  console.log(`Light button clicked, new state: ${newState}, attempt ${attempt}/${maxAttempts}`);
+  showFeedback(`Turning light ${newState ? "ON" : "OFF"}...", "info`);
   gsap.to(lightBtn, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
-  fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
-    method: "POST",
-    headers: { 
-      "Authorization": `Bearer ${API_TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ light_state: newState })
-  })
-  .then(() => {
-    fetchSensorData();
+  try {
+    const res = await fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
+      method: "POST",
+      headers: { 
+        "Authorization": `Bearer ${API_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ light_state: newState })
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
+    }
+    await fetchSensorData();
     showFeedback(`Light turned ${newState ? "ON" : "OFF"}`, "success");
     isLoading = false;
     toggleSpinner(false);
-  })
-  .catch(err => {
-    console.error("Error controlling light:", err);
-    showFeedback("Failed to control light", "danger", () => document.getElementById("light-btn").click());
-    showErrorToast("Failed to control light. Please try again.", () => document.getElementById("light-btn").click());
-    isLoading = false;
-    toggleSpinner(false);
-  });
-});
+  } catch (err) {
+    console.error(`Error controlling light (attempt ${attempt}):`, err);
+    let errorMessage = "Failed to control light. Please try again.";
+    if (err.message.includes("401")) {
+      errorMessage = "Invalid Arduino Cloud API token. Please update the token in script.js.";
+      showErrorToast(errorMessage, () => document.getElementById("light-btn").click());
+    } else if (err.message.includes("net::ERR_FAILED")) {
+      errorMessage = "Network error controlling light. Check your connection or server status.";
+      showErrorToast(errorMessage, () => document.getElementById("light-btn").click());
+    }
+    if (attempt < maxAttempts) {
+      console.log(`Retrying controlLight, attempt ${attempt + 1}`);
+      setTimeout(() => controlLight(newState, attempt + 1, maxAttempts), 2000);
+    } else {
+      showFeedback("Failed to control light", "danger", () => document.getElementById("light-btn").click());
+      showErrorMessage(errorMessage, () => document.getElementById("light-btn").click());
+      isLoading = false;
+      toggleSpinner(false);
+    }
+  }
+}
 
 // Fetch logs (admin only)
-function fetchLogs(filter = '') {
+async function fetchLogs(filter = '') {
   if (!isAdmin) {
     console.log("Access denied: Logs are admin-only");
     showFeedback("Access denied: Logs are admin-only", "danger");
+    showErrorMessage("Access denied: Logs are admin-only");
+    isLoading = false; // Reset on access denial
     return;
   }
   if (isLoading) {
@@ -540,14 +666,15 @@ function fetchLogs(filter = '') {
   toggleSpinner(true);
   showFeedback("Loading logs...", "info");
   console.log("Fetching logs for group:", currentGroup, "with filter:", filter);
-  fetch(`${API_BASE}/devices/logs`, {
-    headers: { "Authorization": `Bearer ${API_TOKEN}` }
-  })
-  .then(res => {
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    return res.json();
-  })
-  .then(logs => {
+  try {
+    const res = await fetch(`${API_BASE}/devices/logs`, {
+      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
+    }
+    const logs = await res.json();
     console.log("Logs received:", logs);
     const logList = document.getElementById("log-list");
     logList.innerHTML = "";
@@ -569,14 +696,21 @@ function fetchLogs(filter = '') {
     showFeedback("Logs updated", "success");
     isLoading = false;
     toggleSpinner(false);
-  })
-  .catch(err => {
+  } catch (err) {
     console.error("Error fetching logs:", err);
+    let errorMessage = "Failed to fetch logs. Please try again.";
+    if (err.message.includes("401")) {
+      errorMessage = "Invalid Arduino Cloud API token. Please update the token in script.js.";
+      showErrorToast(errorMessage, () => fetchLogs(filter));
+    } else if (err.message.includes("net::ERR_FAILED")) {
+      errorMessage = "Network error fetching logs. Check your connection or server status.";
+      showErrorToast(errorMessage, () => fetchLogs(filter));
+    }
     showFeedback("Failed to fetch logs", "danger", () => fetchLogs(filter));
-    showErrorToast("Failed to fetch logs. Please try again.", () => fetchLogs(filter));
+    showErrorMessage(errorMessage, () => fetchLogs(filter));
     isLoading = false;
     toggleSpinner(false);
-  });
+  }
 }
 
 // Log filters
@@ -592,7 +726,6 @@ document.getElementById("log-group-filter")?.addEventListener("change", (e) => {
 document.getElementById("dark-mode-toggle").addEventListener("change", (e) => {
   document.body.classList.toggle("dark-mode", e.target.checked);
   localStorage.setItem("darkMode", e.target.checked);
-  // Update chart labels
   [soilMoistureChart, temperatureChart, humidityChart].forEach(chart => {
     if (chart) chart.update();
   });
@@ -608,9 +741,7 @@ document.getElementById("save-settings").addEventListener("click", () => {
     savePlantNames().then(() => {
       const modal = bootstrap.Modal.getInstance(document.getElementById("settingsModal"));
       modal.hide();
-    }).catch(() => {
-      // Modal stays open on error to allow correction
-    });
+    }).catch(() => {});
   } else {
     showFeedback("Settings saved", "success");
     const modal = bootstrap.Modal.getInstance(document.getElementById("settingsModal"));
@@ -622,6 +753,20 @@ document.getElementById("save-settings").addEventListener("click", () => {
 document.getElementById("refresh-btn").addEventListener("click", () => {
   console.log("Refresh button clicked");
   fetchSensorData();
+});
+
+// Control pump
+document.getElementById("pump-btn").addEventListener("click", () => {
+  const pumpBtn = document.getElementById("pump-btn");
+  const newState = pumpBtn.getAttribute("data-active") !== "true";
+  controlPump(newState);
+});
+
+// Control light
+document.getElementById("light-btn").addEventListener("click", () => {
+  const lightBtn = document.getElementById("light-btn");
+  const newState = lightBtn.getAttribute("data-active") !== "true";
+  controlLight(newState);
 });
 
 // Initialize settings
