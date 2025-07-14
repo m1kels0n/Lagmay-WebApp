@@ -118,9 +118,8 @@
         </div>
       </div>
 
-      <div class="hero-section text-center mb-5 shadow-lg p-4">
-        <h1 class="display-5 text-shadow" id="plant-name">Cactus Dashboard</h1>
-        <p class="lead text-muted">Monitor and control your plant watering system</p>
+      <div class="hero-section text-center mb-4 shadow-lg">
+        <h1 class="display-6 text-shadow" id="plant-name">Cactus Dashboard</h1>
       </div>
 
       <div id="loading-spinner" class="text-center my-4 d-none">
@@ -130,11 +129,12 @@
       </div>
 
       <div id="sensor-data">
-        <div class="row mb-5">
+        <div class="row mb-4">
           <div class="col-md-4 mb-4">
             <div class="card gauge-card shadow-sm">
               <div class="card-body text-center">
-                <h4 class="card-title text-primary text-shadow">Soil Moisture</h4>
+                <i class="fas fa-tint sensor-icon text-primary text-shadow" aria-label="Soil Moisture"></i>
+                <h4 class="card-title sensor-text text-primary text-shadow">Soil Moisture</h4>
                 <p class="card-text" id="soil-moisture">0%</p>
                 <canvas id="soil-moisture-gauge" aria-label="Soil Moisture Gauge"></canvas>
               </div>
@@ -143,7 +143,8 @@
           <div class="col-md-4 mb-4">
             <div class="card gauge-card shadow-sm">
               <div class="card-body text-center">
-                <h4 class="card-title text-danger text-shadow">Temperature</h4>
+                <i class="fas fa-thermometer-half sensor-icon text-danger text-shadow" aria-label="Temperature"></i>
+                <h4 class="card-title sensor-text text-danger text-shadow">Temperature</h4>
                 <p class="card-text" id="temperature">0°C</p>
                 <canvas id="temperature-gauge" aria-label="Temperature Gauge"></canvas>
               </div>
@@ -152,16 +153,13 @@
           <div class="col-md-4 mb-4">
             <div class="card gauge-card shadow-sm">
               <div class="card-body text-center">
-                <h4 class="card-title text-info text-shadow">Humidity</h4>
+                <i class="fas fa-water sensor-icon text-info text-shadow" aria-label="Humidity"></i>
+                <h4 class="card-title sensor-text text-info text-shadow">Humidity</h4>
                 <p class="card-text" id="humidity">0%</p>
                 <canvas id="humidity-gauge" aria-label="Humidity Gauge"></canvas>
               </div>
             </div>
           </div>
-        </div>
-        <div class="text-center mb-4">
-          <p class="text-muted">Last updated: <span id="last-updated">Never</span></p>
-          <button id="refresh-btn" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Refresh data"><i class="fas fa-sync-alt"></i> Refresh</button>
         </div>
       </div>
 
@@ -185,6 +183,11 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="text-center mb-4">
+        <p class="text-muted">Last updated: <span id="last-updated">Never</span></p>
+        <button id="refresh-btn" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Refresh data"><i class="fas fa-sync-alt"></i> Refresh</button>
       </div>
 
       <div id="logs" class="d-none">
@@ -223,5 +226,5 @@
   <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js"></script>
   <script type="module" src="script.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'95ee3fbdbb9784e5',t:'MTc1MjQ2NzA1MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
