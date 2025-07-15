@@ -749,12 +749,18 @@ document.getElementById("save-settings").addEventListener("click", () => {
   if (isAdmin) {
     savePlantNames().then(() => {
       const modal = bootstrap.Modal.getInstance(document.getElementById("settingsModal"));
-      modal.hide();
+      if (modal) {
+        modal.hide(); // Ensure modal hides properly
+        document.activeElement.blur(); // Remove focus from any active element
+      }
     }).catch(() => {});
   } else {
     showFeedback("Settings saved", "success");
     const modal = bootstrap.Modal.getInstance(document.getElementById("settingsModal"));
-    modal.hide();
+    if (modal) {
+      modal.hide(); // Ensure modal hides properly
+      document.activeElement.blur(); // Remove focus from any active element
+    }
   }
 });
 
@@ -785,4 +791,11 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("dark-mode");
   }
   document.getElementById("refresh-interval").value = refreshInterval;
+
+  // Add event listener for modal close to clear focus
+  const settingsModal = document.getElementById("settingsModal");
+  settingsModal.addEventListener("hidden.bs.modal", () => {
+    console.log("Modal hidden, clearing focus");
+    document.activeElement.blur(); // Remove focus from any element
+  });
 });

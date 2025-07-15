@@ -72,7 +72,7 @@
         </div>
       </nav>
 
-      <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+      <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-modal="true">
         <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
@@ -134,8 +134,8 @@
           <div class="col-12 col-md-4 mb-4">
             <div class="card gauge-card shadow-sm">
               <div class="card-body text-center">
-                <h4 class="card-title sensor-text text-primary text-shadow d-none">Soil Moisture</h4>
-                <p class="card-text d-none" id="soil-moisture">0%</p>
+                <h4 class="card-title sensor-text text-primary text-shadow">Soil Moisture</h4>
+                <p class="card-text" id="soil-moisture">0%</p>
                 <canvas id="soil-moisture-gauge" aria-label="Soil Moisture Gauge"></canvas>
               </div>
             </div>
@@ -143,8 +143,8 @@
           <div class="col-12 col-md-4 mb-4">
             <div class="card gauge-card shadow-sm">
               <div class="card-body text-center">
-                <h4 class="card-title sensor-text text-danger text-shadow d-none">Temperature</h4>
-                <p class="card-text d-none" id="temperature">0°C</p>
+                <h4 class="card-title sensor-text text-danger text-shadow">Temperature</h4>
+                <p class="card-text" id="temperature">0°C</p>
                 <canvas id="temperature-gauge" aria-label="Temperature Gauge"></canvas>
               </div>
             </div>
@@ -152,8 +152,8 @@
           <div class="col-12 col-md-4 mb-4">
             <div class="card gauge-card shadow-sm">
               <div class="card-body text-center">
-                <h4 class="card-title sensor-text text-info text-shadow d-none">Humidity</h4>
-                <p class="card-text d-none" id="humidity">0%</p>
+                <h4 class="card-title sensor-text text-info text-shadow">Humidity</h4>
+                <p class="card-text" id="humidity">0%</p>
                 <canvas id="humidity-gauge" aria-label="Humidity Gauge"></canvas>
               </div>
             </div>
