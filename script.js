@@ -150,19 +150,20 @@ function initCharts() {
           ctx.save();
           const width = chart.width;
           const height = chart.height;
-          const fontSize = Math.min(24, height / 5); // Cap at 24px for value
-          const iconSize = Math.min(16, height / 7.5); // Cap at 16px for icon
+          const totalHeight = height * 0.4; // Use 40% of height for text+icon stack
+          const fontSize = Math.min(24, totalHeight / 2.5); // Cap value font size
+          const iconSize = Math.min(16, totalHeight / 4); // Cap icon font size
           ctx.font = `${fontSize}px Poppins`;
           ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           const value = document.getElementById("soil-moisture").textContent || "0%";
           console.log("Drawing soil moisture value:", value); // Debug log
-          ctx.fillText(value, width / 2, height / 2 - iconSize / 2); // Value above center
+          ctx.fillText(value, width / 2, height / 2 - iconSize / 2); // Value centered, slight offset for icon
           ctx.font = `${iconSize}px FontAwesome`; // Set FontAwesome font for icon
           const iconCode = "\uf043"; // fa-tint (Soil Moisture)
           console.log("Drawing soil moisture icon with code:", iconCode); // Debug log
-          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2); // Icon below value
+          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2); // Icon below value, centered
           ctx.restore();
         }
       },
@@ -194,19 +195,20 @@ function initCharts() {
           ctx.save();
           const width = chart.width;
           const height = chart.height;
-          const fontSize = Math.min(24, height / 5); // Cap at 24px for value
-          const iconSize = Math.min(16, height / 7.5); // Cap at 16px for icon
+          const totalHeight = height * 0.4; // Use 40% of height for text+icon stack
+          const fontSize = Math.min(24, totalHeight / 2.5); // Cap value font size
+          const iconSize = Math.min(16, totalHeight / 4); // Cap icon font size
           ctx.font = `${fontSize}px Poppins`;
           ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           const value = document.getElementById("temperature").textContent || "0°C";
           console.log("Drawing temperature value:", value); // Debug log
-          ctx.fillText(value, width / 2, height / 2 - iconSize / 2); // Value above center
+          ctx.fillText(value, width / 2, height / 2 - iconSize / 2); // Value centered, slight offset for icon
           ctx.font = `${iconSize}px FontAwesome`; // Set FontAwesome font for icon
           const iconCode = "\uf2c7"; // fa-thermometer-half (Temperature)
           console.log("Drawing temperature icon with code:", iconCode); // Debug log
-          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2); // Icon below value
+          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2); // Icon below value, centered
           ctx.restore();
         }
       },
@@ -238,19 +240,20 @@ function initCharts() {
           ctx.save();
           const width = chart.width;
           const height = chart.height;
-          const fontSize = Math.min(24, height / 5); // Cap at 24px for value
-          const iconSize = Math.min(16, height / 7.5); // Cap at 16px for icon
+          const totalHeight = height * 0.4; // Use 40% of height for text+icon stack
+          const fontSize = Math.min(24, totalHeight / 2.5); // Cap value font size
+          const iconSize = Math.min(16, totalHeight / 4); // Cap icon font size
           ctx.font = `${fontSize}px Poppins`;
           ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           const value = document.getElementById("humidity").textContent || "0%";
           console.log("Drawing humidity value:", value); // Debug log
-          ctx.fillText(value, width / 2, height / 2 - iconSize / 2); // Value above center
+          ctx.fillText(value, width / 2, height / 2 - iconSize / 2); // Value centered, slight offset for icon
           ctx.font = `${iconSize}px FontAwesome`; // Set FontAwesome font for icon
           const iconCode = "\uf773"; // fa-water (Humidity)
           console.log("Drawing humidity icon with code:", iconCode); // Debug log
-          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2); // Icon below value
+          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2); // Icon below value, centered
           ctx.restore();
         }
       },
