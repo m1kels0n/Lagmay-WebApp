@@ -21,11 +21,11 @@ const analytics = getAnalytics(app);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-// API settings (replace with actual Arduino Cloud API token)
+// API settings (replace with actual Arduino Cloud API token and Thing ID)
 const API_BASE = "https://api2.arduino.cc/iot/v2";
-const API_TOKEN = "your_api_token";
+const API_TOKEN = "YOUR_ACTUAL_API_TOKEN_HERE"; // Replace with your token
+const THING_ID = "YOUR_THING_ID_HERE"; // Replace with your Thing ID
 let currentUser = null;
-let currentGroup = 1;
 let isLoading = false;
 let refreshInterval = 5000;
 let pollIntervalId = null;
@@ -92,14 +92,14 @@ function savePlantNames() {
 function updatePlantNameUI() {
   const plantNameElement = document.getElementById("plant-name");
   if (plantNameElement) {
-    plantNameElement.textContent = plantNames[currentGroup] || `Group ${currentGroup} Dashboard`;
+    plantNameElement.textContent = plantNames[1] || "Plant Watering Dashboard"; // Default to Group 1 or generic name
   }
   if (isAdmin) {
     for (let i = 1; i <= 4; i++) {
       const navElement = document.querySelector(`.admin-nav a[data-group="${i}"]`);
       const inputElement = document.getElementById(`plant-name-${i}-input`);
       if (navElement) {
-        navElement.textContent = `Group ${i}`;
+        navElement.textContent = plantNames[i] || `Group ${i}`;
       }
       if (inputElement) {
         inputElement.value = plantNames[i] || "";
@@ -109,7 +109,7 @@ function updatePlantNameUI() {
 }
 
 function initCharts() {
-  console.log("Initializing charts for group:", currentGroup);
+  console.log("Initializing charts");
   // Cleanup existing charts and resize listener
   if (soilMoistureChart) soilMoistureChart.destroy();
   if (temperatureChart) temperatureChart.destroy();
@@ -150,20 +150,18 @@ function initCharts() {
           ctx.save();
           const width = chart.width;
           const height = chart.height;
-          const totalHeight = height * 0.4; // Use 40% of height for text+icon stack
-          const fontSize = Math.min(24, totalHeight / 2.5); // Cap value font size
-          const iconSize = Math.min(16, totalHeight / 4); // Cap icon font size
+          const totalHeight = height * 0.4;
+          const fontSize = Math.min(24, totalHeight / 2.5);
+          const iconSize = Math.min(16, totalHeight / 4);
           ctx.font = `${fontSize}px Poppins`;
           ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           const value = document.getElementById("soil-moisture").textContent || "0%";
-          console.log("Drawing soil moisture value:", value); // Debug log
-          ctx.fillText(value, width / 2, height / 2 - iconSize / 2); // Value centered, slight offset for icon
-          ctx.font = `${iconSize}px FontAwesome`; // Set FontAwesome font for icon
-          const iconCode = "\uf043"; // fa-tint (Soil Moisture)
-          console.log("Drawing soil moisture icon with code:", iconCode); // Debug log
-          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2); // Icon below value, centered
+          ctx.fillText(value, width / 2, height / 2 - iconSize / 2);
+          ctx.font = `${iconSize}px FontAwesome`;
+          const iconCode = "\uf043";
+          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2);
           ctx.restore();
         }
       },
@@ -195,20 +193,18 @@ function initCharts() {
           ctx.save();
           const width = chart.width;
           const height = chart.height;
-          const totalHeight = height * 0.4; // Use 40% of height for text+icon stack
-          const fontSize = Math.min(24, totalHeight / 2.5); // Cap value font size
-          const iconSize = Math.min(16, totalHeight / 4); // Cap icon font size
+          const totalHeight = height * 0.4;
+          const fontSize = Math.min(24, totalHeight / 2.5);
+          const iconSize = Math.min(16, totalHeight / 4);
           ctx.font = `${fontSize}px Poppins`;
           ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           const value = document.getElementById("temperature").textContent || "0°C";
-          console.log("Drawing temperature value:", value); // Debug log
-          ctx.fillText(value, width / 2, height / 2 - iconSize / 2); // Value centered, slight offset for icon
-          ctx.font = `${iconSize}px FontAwesome`; // Set FontAwesome font for icon
-          const iconCode = "\uf2c7"; // fa-thermometer-half (Temperature)
-          console.log("Drawing temperature icon with code:", iconCode); // Debug log
-          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2); // Icon below value, centered
+          ctx.fillText(value, width / 2, height / 2 - iconSize / 2);
+          ctx.font = `${iconSize}px FontAwesome`;
+          const iconCode = "\uf2c7";
+          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2);
           ctx.restore();
         }
       },
@@ -240,20 +236,18 @@ function initCharts() {
           ctx.save();
           const width = chart.width;
           const height = chart.height;
-          const totalHeight = height * 0.4; // Use 40% of height for text+icon stack
-          const fontSize = Math.min(24, totalHeight / 2.5); // Cap value font size
-          const iconSize = Math.min(16, totalHeight / 4); // Cap icon font size
+          const totalHeight = height * 0.4;
+          const fontSize = Math.min(24, totalHeight / 2.5);
+          const iconSize = Math.min(16, totalHeight / 4);
           ctx.font = `${fontSize}px Poppins`;
           ctx.fillStyle = document.body.classList.contains("dark-mode") ? "#e0e0e0" : "#333";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           const value = document.getElementById("humidity").textContent || "0%";
-          console.log("Drawing humidity value:", value); // Debug log
-          ctx.fillText(value, width / 2, height / 2 - iconSize / 2); // Value centered, slight offset for icon
-          ctx.font = `${iconSize}px FontAwesome`; // Set FontAwesome font for icon
-          const iconCode = "\uf773"; // fa-water (Humidity)
-          console.log("Drawing humidity icon with code:", iconCode); // Debug log
-          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2); // Icon below value, centered
+          ctx.fillText(value, width / 2, height / 2 - iconSize / 2);
+          ctx.font = `${iconSize}px FontAwesome`;
+          const iconCode = "\uf773";
+          ctx.fillText(iconCode, width / 2, height / 2 + fontSize / 2);
           ctx.restore();
         }
       },
@@ -317,7 +311,7 @@ function showErrorMessage(message, retryCallback = null) {
     ? `${message} <button class="btn btn-sm btn-outline-danger ms-2 retry-error-btn" aria-label="Retry action">Retry</button>` 
     : message;
   errorMessage.classList.remove('d-none');
-  toggleSpinner(false); // Ensure spinner is hidden
+  toggleSpinner(false);
   if (retryCallback) {
     const existingBtn = errorMessage.querySelector('.retry-error-btn');
     if (existingBtn) existingBtn.removeEventListener('click', existingBtn._retryCallback);
@@ -364,15 +358,12 @@ onAuthStateChanged(auth, (user) => {
       document.getElementById("plant-name-settings").classList.remove("d-none");
       document.querySelector(".admin-only").classList.remove("d-none");
       document.querySelector(".nav-link[data-group='1']").classList.add("active");
-      currentGroup = 1;
     } else {
-      const username = user.email.split('@')[0];
-      currentGroup = parseInt(username.replace("user", ""));
       document.querySelectorAll(".admin-nav").forEach(el => el.classList.add("d-none"));
       document.getElementById("logs-nav").classList.add("d-none");
       document.getElementById("plant-name-settings").classList.add("d-none");
       document.querySelector(".admin-only").classList.add("d-none");
-      console.log("Initializing dashboard for user, group:", currentGroup);
+      console.log("Initializing dashboard for user");
     }
     showFeedback("Fetching data...", "info");
     initCharts();
@@ -448,8 +439,8 @@ document.querySelectorAll(".nav-link").forEach(tab => {
       clearInterval(pollIntervalId);
       fetchLogs();
     } else {
-      currentGroup = parseInt(e.target.dataset.group);
-      document.getElementById("plant-name").textContent = plantNames[currentGroup] || `Group ${currentGroup} Dashboard`;
+      const group = parseInt(e.target.dataset.group);
+      document.getElementById("plant-name").textContent = plantNames[group] || `Group ${group} Dashboard`;
       document.getElementById("sensor-data").classList.remove("d-none");
       document.getElementById("controls").classList.remove("d-none");
       document.getElementById("logs").classList.add("d-none");
@@ -457,17 +448,17 @@ document.querySelectorAll(".nav-link").forEach(tab => {
       fetchSensorData();
       clearInterval(pollIntervalId);
       pollIntervalId = setInterval(fetchSensorData, refreshInterval);
-      console.log("Polling interval set for admin group switch:", refreshInterval);
+      console.log("Polling interval set for group switch:", refreshInterval);
     }
   });
 });
 
 // Fetch sensor data with retry
 async function fetchSensorData(attempt = 1, maxAttempts = 3) {
-  if (!currentUser || (!isAdmin && currentUser.email !== `user${currentGroup}@plantwatering.com`)) {
-    console.log("Access denied: User not authorized for group", currentGroup);
-    showErrorMessage("Access denied: User not authorized for group " + currentGroup);
-    isLoading = false; // Reset on access denial
+  if (!currentUser) {
+    console.log("Access denied: No user logged in");
+    showErrorMessage("Please log in to access sensor data");
+    isLoading = false;
     return;
   }
   if (isLoading) {
@@ -477,9 +468,9 @@ async function fetchSensorData(attempt = 1, maxAttempts = 3) {
   isLoading = true;
   toggleSpinner(true);
   showFeedback("Loading sensor data...", "info");
-  console.log(`Fetching sensor data for group ${currentGroup}, attempt ${attempt}/${maxAttempts}`);
+  console.log(`Fetching sensor data, attempt ${attempt}/${maxAttempts}`);
   try {
-    const res = await fetch(`${API_BASE}/devices/group${currentGroup}/sensors`, {
+    const res = await fetch(`${API_BASE}/things/${THING_ID}/properties`, {
       headers: { "Authorization": `Bearer ${API_TOKEN}` }
     });
     if (!res.ok) {
@@ -488,13 +479,13 @@ async function fetchSensorData(attempt = 1, maxAttempts = 3) {
     }
     const data = await res.json();
     console.log("Sensor data received:", data);
-    document.getElementById("soil-moisture").textContent = data.soil_moisture || 0;
-    document.getElementById("temperature").textContent = data.temperature || 0;
-    document.getElementById("humidity").textContent = data.humidity || 0;
+    document.getElementById("soil-moisture").textContent = data.soil_moisture !== undefined ? `${data.soil_moisture}%` : "0%";
+    document.getElementById("temperature").textContent = data.temp !== undefined ? `${data.temp}°C` : "0°C";
+    document.getElementById("humidity").textContent = data.humid !== undefined ? `${data.humid}%` : "0%";
     const pumpBtn = document.getElementById("pump-btn");
     const lightBtn = document.getElementById("light-btn");
-    const isPumpActive = data.pump_state || false;
-    const isLightActive = data.light_state || false;
+    const isPumpActive = data.pump || false;
+    const isLightActive = data.light || false;
     pumpBtn.classList.toggle("active", isPumpActive);
     pumpBtn.setAttribute("data-active", isPumpActive);
     pumpBtn.setAttribute("aria-label", `Toggle water pump, currently ${isPumpActive ? "ON" : "OFF"}`);
@@ -509,12 +500,12 @@ async function fetchSensorData(attempt = 1, maxAttempts = 3) {
       onUpdate: () => soilMoistureChart.update()
     });
     gsap.to(temperatureChart.data.datasets[0], {
-      data: [Math.min(data.temperature || 0, 50), 50 - Math.min(data.temperature || 0, 50)],
+      data: [Math.min(data.temp || 0, 50), 50 - Math.min(data.temp || 0, 50)],
       duration: 0.5,
       onUpdate: () => temperatureChart.update()
     });
     gsap.to(humidityChart.data.datasets[0], {
-      data: [Math.min(data.humidity || 0, 100), 100 - Math.min(data.humidity || 0, 100)],
+      data: [Math.min(data.humid || 0, 100), 100 - Math.min(data.humid || 0, 100)],
       duration: 0.5,
       onUpdate: () => humidityChart.update()
     });
@@ -529,7 +520,7 @@ async function fetchSensorData(attempt = 1, maxAttempts = 3) {
       errorMessage = "Invalid Arduino Cloud API token. Please update the token in script.js.";
       showErrorToast(errorMessage, fetchSensorData);
     } else if (err.message.includes("404")) {
-      errorMessage = `Device group ${currentGroup} not found. Check Arduino Cloud configuration.`;
+      errorMessage = `Thing not found. Check Thing ID configuration.`;
       showErrorToast(errorMessage, fetchSensorData);
     } else if (err.message.includes("net::ERR_FAILED")) {
       errorMessage = "Network error connecting to Arduino Cloud. Check your connection or server status.";
@@ -549,10 +540,10 @@ async function fetchSensorData(attempt = 1, maxAttempts = 3) {
 
 // Control pump with retry
 async function controlPump(newState, attempt = 1, maxAttempts = 3) {
-  if (!currentUser || (!isAdmin && currentUser.email !== `user${currentGroup}@plantwatering.com`)) {
-    console.log("Access denied: User not authorized for group", currentGroup);
-    showErrorMessage("Access denied: User not authorized for group " + currentGroup);
-    isLoading = false; // Reset on access denial
+  if (!currentUser) {
+    console.log("Access denied: No user logged in");
+    showErrorMessage("Please log in to control the pump");
+    isLoading = false;
     return;
   }
   if (isLoading) {
@@ -566,13 +557,13 @@ async function controlPump(newState, attempt = 1, maxAttempts = 3) {
   showFeedback(`Turning pump ${newState ? "ON" : "OFF"}...`, "info");
   gsap.to(pumpBtn, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
   try {
-    const res = await fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
-      method: "POST",
+    const res = await fetch(`${API_BASE}/things/${THING_ID}/properties`, {
+      method: "PATCH",
       headers: { 
         "Authorization": `Bearer ${API_TOKEN}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ pump_state: newState })
+      body: JSON.stringify({ pump: newState })
     });
     if (!res.ok) {
       const errorText = await res.text();
@@ -606,10 +597,10 @@ async function controlPump(newState, attempt = 1, maxAttempts = 3) {
 
 // Control light with retry
 async function controlLight(newState, attempt = 1, maxAttempts = 3) {
-  if (!currentUser || (!isAdmin && currentUser.email !== `user${currentGroup}@plantwatering.com`)) {
-    console.log("Access denied: User not authorized for group", currentGroup);
-    showErrorMessage("Access denied: User not authorized for group " + currentGroup);
-    isLoading = false; // Reset on access denial
+  if (!currentUser) {
+    console.log("Access denied: No user logged in");
+    showErrorMessage("Please log in to control the light");
+    isLoading = false;
     return;
   }
   if (isLoading) {
@@ -620,16 +611,16 @@ async function controlLight(newState, attempt = 1, maxAttempts = 3) {
   toggleSpinner(true);
   const lightBtn = document.getElementById("light-btn");
   console.log(`Light button clicked, new state: ${newState}, attempt ${attempt}/${maxAttempts}`);
-  showFeedback('Turning light ${newState ? "ON" : "OFF"}...', "info");
+  showFeedback(`Turning light ${newState ? "ON" : "OFF"}...`, "info");
   gsap.to(lightBtn, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
   try {
-    const res = await fetch(`${API_BASE}/devices/group${currentGroup}/control`, {
-      method: "POST",
+    const res = await fetch(`${API_BASE}/things/${THING_ID}/properties`, {
+      method: "PATCH",
       headers: { 
         "Authorization": `Bearer ${API_TOKEN}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ light_state: newState })
+      body: JSON.stringify({ light: newState })
     });
     if (!res.ok) {
       const errorText = await res.text();
@@ -667,7 +658,7 @@ async function fetchLogs(filter = '') {
     console.log("Access denied: Logs are admin-only");
     showFeedback("Access denied: Logs are admin-only", "danger");
     showErrorMessage("Access denied: Logs are admin-only");
-    isLoading = false; // Reset on access denial
+    isLoading = false;
     return;
   }
   if (isLoading) {
@@ -677,7 +668,7 @@ async function fetchLogs(filter = '') {
   isLoading = true;
   toggleSpinner(true);
   showFeedback("Loading logs...", "info");
-  console.log("Fetching logs for group:", currentGroup, "with filter:", filter);
+  console.log("Fetching logs with filter:", filter);
   try {
     const res = await fetch(`${API_BASE}/devices/logs`, {
       headers: { "Authorization": `Bearer ${API_TOKEN}` }
@@ -690,19 +681,16 @@ async function fetchLogs(filter = '') {
     console.log("Logs received:", logs);
     const logList = document.getElementById("log-list");
     logList.innerHTML = "";
-    const groupFilter = document.getElementById("log-group-filter")?.value || currentGroup.toString();
     const filteredLogs = logs.filter(log => {
-      const matchesGroup = groupFilter === "all" || log.group.toString() === groupFilter;
       const matchesFilter = 
         log.action.toLowerCase().includes(filter.toLowerCase()) || 
-        log.group.toString().includes(filter) ||
         (plantNames[log.group] && plantNames[log.group].toLowerCase().includes(filter.toLowerCase()));
-      return matchesGroup && matchesFilter;
+      return matchesFilter;
     });
     filteredLogs.forEach(log => {
       const li = document.createElement("li");
       const plantName = plantNames[log.group] || `Group ${log.group}`;
-      li.textContent = `${log.timestamp}: ${log.user} ${log.action} (${plantName}, Soil: ${log.soil_moisture}%, Temp: ${log.temperature}°C, Hum: ${log.humidity}%)`;
+      li.textContent = `${log.timestamp}: ${log.user} ${log.action} (${plantName}, Soil: ${log.soil_moisture}%, Temp: ${log.temp}°C, Hum: ${log.humid}%)`;
       logList.appendChild(li);
     });
     showFeedback("Logs updated", "success");
@@ -753,16 +741,16 @@ document.getElementById("save-settings").addEventListener("click", () => {
     savePlantNames().then(() => {
       const modal = bootstrap.Modal.getInstance(document.getElementById("settingsModal"));
       if (modal) {
-        modal.hide(); // Ensure modal hides properly
-        document.activeElement.blur(); // Remove focus from any active element
+        modal.hide();
+        document.activeElement.blur();
       }
     }).catch(() => {});
   } else {
     showFeedback("Settings saved", "success");
     const modal = bootstrap.Modal.getInstance(document.getElementById("settingsModal"));
     if (modal) {
-      modal.hide(); // Ensure modal hides properly
-      document.activeElement.blur(); // Remove focus from any active element
+      modal.hide();
+      document.activeElement.blur();
     }
   }
 });
@@ -795,10 +783,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   document.getElementById("refresh-interval").value = refreshInterval;
 
-  // Add event listener for modal close to clear focus
   const settingsModal = document.getElementById("settingsModal");
   settingsModal.addEventListener("hidden.bs.modal", () => {
     console.log("Modal hidden, clearing focus");
-    document.activeElement.blur(); // Remove focus from any element
+    document.activeElement.blur();
   });
 });
