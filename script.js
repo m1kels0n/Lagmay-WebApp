@@ -21,10 +21,14 @@ const analytics = getAnalytics(app);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-// API settings (replace with actual Arduino Cloud API token and Thing ID)
-const API_BASE = "https://api2.arduino.cc/iot/v2";
-const API_TOKEN = "YOUR_ACTUAL_API_TOKEN_HERE"; // Replace with your token
-const THING_ID = "YOUR_THING_ID_HERE"; // Replace with your Thing ID
+// API and OAuth settings
+const API_BASE = "https://api2.arduino.cc/iot";
+const TOKEN_URL = "https://api2.arduino.cc/iot/v1/clients/token";
+const CLIENT_ID = "ZkYJs3v6DgkDkNU1U9XPdeA9FobufYY1"; // Replace with your Client ID
+const CLIENT_SECRET = "ZAXEVQABucItefupW8Yi7FsKvTXm5tw2XSKxTjTng06S3NHsE12i92JzNHUnfDi9"; // Replace with your Client Secret
+const THING_ID = "a0d5db2f-b511-4253-9213-43fb13939649"; // Replace with your Thing ID
+let accessToken = null;
+let tokenExpiry = null;
 let currentUser = null;
 let isLoading = false;
 let refreshInterval = 5000;
@@ -35,6 +39,48 @@ let spinnerTimeout = null;
 
 // Gauge charts
 let soilMoistureChart, temperatureChart, humidityChart;
+
+// Fetch access token
+async function fetchAccessToken(attempt = 1, maxAttempts = 3) {
+  if (accessToken && tokenExpiry && Date.now() < tokenExpiry - 300000) { // 5-minute buffer
+    console.log("Using cached token");
+    return accessToken;
+  }
+  console.log(`Fetching access token, attempt ${attempt}/${maxAttempts}`);
+  try {
+    const res = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`
+      },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        audience: "https://api2.arduino.cc/iot"
+      })
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
+    }
+    const data = await res.json();
+    accessToken = data.access_token;
+    tokenExpiry = Date.now() + (data.expires_in * 1000); // Convert to milliseconds
+    console.log("Token fetched, expires at:", new Date(tokenExpiry));
+    return accessToken;
+  } catch (err) {
+    console.error(`Error fetching token (attempt ${attempt}):`, err);
+    let errorMessage = "Failed to fetch access token. Please check your Client ID and Secret.";
+    if (attempt < maxAttempts) {
+      console.log(`Retrying fetchAccessToken, attempt ${attempt + 1}`);
+      return new Promise((resolve) => setTimeout(() => resolve(fetchAccessToken(attempt + 1, maxAttempts)), 2000));
+    } else {
+      showFeedback("Failed to authenticate with Arduino Cloud", "danger");
+      showErrorToast(errorMessage);
+      throw err;
+    }
+  }
+}
 
 // Load plant names from Firebase Realtime Database with real-time listener
 function loadPlantNames() {
@@ -92,7 +138,7 @@ function savePlantNames() {
 function updatePlantNameUI() {
   const plantNameElement = document.getElementById("plant-name");
   if (plantNameElement) {
-    plantNameElement.textContent = plantNames[1] || "Plant Watering Dashboard"; // Default to Group 1 or generic name
+    plantNameElement.textContent = plantNames[1] || "Plant Watering Dashboard";
   }
   if (isAdmin) {
     for (let i = 1; i <= 4; i++) {
@@ -110,7 +156,6 @@ function updatePlantNameUI() {
 
 function initCharts() {
   console.log("Initializing charts");
-  // Cleanup existing charts and resize listener
   if (soilMoistureChart) soilMoistureChart.destroy();
   if (temperatureChart) temperatureChart.destroy();
   if (humidityChart) humidityChart.destroy();
@@ -470,8 +515,9 @@ async function fetchSensorData(attempt = 1, maxAttempts = 3) {
   showFeedback("Loading sensor data...", "info");
   console.log(`Fetching sensor data, attempt ${attempt}/${maxAttempts}`);
   try {
+    const token = await fetchAccessToken();
     const res = await fetch(`${API_BASE}/things/${THING_ID}/properties`, {
-      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+      headers: { "Authorization": `Bearer ${token}` }
     });
     if (!res.ok) {
       const errorText = await res.text();
@@ -515,10 +561,10 @@ async function fetchSensorData(attempt = 1, maxAttempts = 3) {
     toggleSpinner(false);
   } catch (err) {
     console.error(`Error fetching sensor data (attempt ${attempt}):`, err);
-    let errorMessage = "Unable to connect to Arduino Cloud. Please check your network or API token.";
+    let errorMessage = "Unable to connect to Arduino Cloud. Please check your network or credentials.";
     if (err.message.includes("401")) {
-      errorMessage = "Invalid Arduino Cloud API token. Please update the token in script.js.";
-      showErrorToast(errorMessage, fetchSensorData);
+      errorMessage = "Invalid or expired token. Attempting to refresh.";
+      fetchAccessToken(); // Attempt to refresh token on 401
     } else if (err.message.includes("404")) {
       errorMessage = `Thing not found. Check Thing ID configuration.`;
       showErrorToast(errorMessage, fetchSensorData);
@@ -557,10 +603,11 @@ async function controlPump(newState, attempt = 1, maxAttempts = 3) {
   showFeedback(`Turning pump ${newState ? "ON" : "OFF"}...`, "info");
   gsap.to(pumpBtn, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
   try {
+    const token = await fetchAccessToken();
     const res = await fetch(`${API_BASE}/things/${THING_ID}/properties`, {
       method: "PATCH",
       headers: { 
-        "Authorization": `Bearer ${API_TOKEN}`,
+        "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ pump: newState })
@@ -577,8 +624,8 @@ async function controlPump(newState, attempt = 1, maxAttempts = 3) {
     console.error(`Error controlling pump (attempt ${attempt}):`, err);
     let errorMessage = "Failed to control pump. Please try again.";
     if (err.message.includes("401")) {
-      errorMessage = "Invalid Arduino Cloud API token. Please update the token in script.js.";
-      showErrorToast(errorMessage, () => document.getElementById("pump-btn").click());
+      errorMessage = "Invalid or expired token. Attempting to refresh.";
+      fetchAccessToken(); // Attempt to refresh token on 401
     } else if (err.message.includes("net::ERR_FAILED")) {
       errorMessage = "Network error controlling pump. Check your connection or server status.";
       showErrorToast(errorMessage, () => document.getElementById("pump-btn").click());
@@ -614,10 +661,11 @@ async function controlLight(newState, attempt = 1, maxAttempts = 3) {
   showFeedback(`Turning light ${newState ? "ON" : "OFF"}...`, "info");
   gsap.to(lightBtn, { x: -2, duration: 0.05, repeat: 3, yoyo: true });
   try {
+    const token = await fetchAccessToken();
     const res = await fetch(`${API_BASE}/things/${THING_ID}/properties`, {
       method: "PATCH",
       headers: { 
-        "Authorization": `Bearer ${API_TOKEN}`,
+        "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ light: newState })
@@ -634,8 +682,8 @@ async function controlLight(newState, attempt = 1, maxAttempts = 3) {
     console.error(`Error controlling light (attempt ${attempt}):`, err);
     let errorMessage = "Failed to control light. Please try again.";
     if (err.message.includes("401")) {
-      errorMessage = "Invalid Arduino Cloud API token. Please update the token in script.js.";
-      showErrorToast(errorMessage, () => document.getElementById("light-btn").click());
+      errorMessage = "Invalid or expired token. Attempting to refresh.";
+      fetchAccessToken(); // Attempt to refresh token on 401
     } else if (err.message.includes("net::ERR_FAILED")) {
       errorMessage = "Network error controlling light. Check your connection or server status.";
       showErrorToast(errorMessage, () => document.getElementById("light-btn").click());
@@ -670,8 +718,9 @@ async function fetchLogs(filter = '') {
   showFeedback("Loading logs...", "info");
   console.log("Fetching logs with filter:", filter);
   try {
+    const token = await fetchAccessToken();
     const res = await fetch(`${API_BASE}/devices/logs`, {
-      headers: { "Authorization": `Bearer ${API_TOKEN}` }
+      headers: { "Authorization": `Bearer ${token}` }
     });
     if (!res.ok) {
       const errorText = await res.text();
@@ -700,8 +749,8 @@ async function fetchLogs(filter = '') {
     console.error("Error fetching logs:", err);
     let errorMessage = "Failed to fetch logs. Please try again.";
     if (err.message.includes("401")) {
-      errorMessage = "Invalid Arduino Cloud API token. Please update the token in script.js.";
-      showErrorToast(errorMessage, () => fetchLogs(filter));
+      errorMessage = "Invalid or expired token. Attempting to refresh.";
+      fetchAccessToken(); // Attempt to refresh token on 401
     } else if (err.message.includes("net::ERR_FAILED")) {
       errorMessage = "Network error fetching logs. Check your connection or server status.";
       showErrorToast(errorMessage, () => fetchLogs(filter));
