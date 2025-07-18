@@ -13,12 +13,15 @@ const pumpToggle = document.getElementById('pumpToggle');
 
 // Get token
 async function getToken() {
-  const response = await fetch('https://api2.arduino.cc/iot/v1/clients/token', {
+  const response = await fetch('https://your-backend-url.com/api/token', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Type': 'application/json',
     },
-    body: `grant_type=client_credentials&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&audience=https://api2.arduino.cc/iot`
+    body: JSON.stringify({
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET
+    })
   });
   
   const data = await response.json();
